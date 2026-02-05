@@ -81,6 +81,7 @@ This section locks down details so model classes can be implemented consistently
 - membership_role_changed
 - membership_status_changed
 - payment_status_changed, pickup_status_changed
+- report_exported
 
 ### Notifications
 - Notification.status: queued, sent, failed.

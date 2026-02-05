@@ -439,6 +439,7 @@ Defaults: page=1, page_size=25, max page_size=100.
 - GET `/api/auctions/{auctionId}/reports/export?format=csv`
   - CSV export (admin; L1/L2).
   - Response: CSV stream
+  - AuditLog: report_exported
 
 ## QR & PDF
 - GET `/api/items/{itemId}/qr`

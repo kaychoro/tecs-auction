@@ -174,7 +174,7 @@
   - Add audit logging for payment and pickup changes.
     - Add AuditLog actions and metadata fields.
 
-- AuditLog coverage checklist
+- ✓ AuditLog coverage checklist
   - Enumerate all state-changing actions in `agents/notes/data_model.md`.
     - Ensure each action has a clear trigger.
   - Implement audit logging helper and enforce use across endpoints.
