@@ -97,6 +97,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 2. System validates phase and permissions.
 3. System records LiveWinner and AuditLog entry.
 4. System updates totals for the winning bidder.
+5. Admin confirms assignment in UI before save.
 
 ## 4) Phase Transition (L1)
 1. System auto-advances phase based on scheduled times.

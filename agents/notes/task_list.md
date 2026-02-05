@@ -262,7 +262,7 @@
   - Document keyboard and screen reader support requirements.
     - Note critical flows to test with screen readers.
 
-- Live auction winner assignment
+- ✓ Live auction winner assignment
   - Implement admin endpoint to assign live winner and final price.
     - Add endpoint payload schema and validation.
   - Enforce phase and role checks (Pending+; L2+).

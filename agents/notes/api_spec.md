@@ -386,6 +386,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: LiveWinner
+  - AuditLog: live_winner_assigned
 
 ## Totals & Status
 - GET `/api/auctions/{auctionId}/totals/me`
