@@ -27,7 +27,8 @@ Key end-to-end flows with timing, permissions, and audit points.
 ## 10) Join Additional Auction / Switch Auctions
 1. Verified bidder selects "Join auction" and enters an auction code.
 2. System validates code and creates AuctionMembership.
-3. Bidder can switch between active auctions they have joined (no global auction list).
+3. System updates user.last_auction_id on join and on auction switch.
+4. Bidder can switch between active auctions they have joined (no global auction list).
 
 ## 11) Session Timeout & Return
 1. If a session expires, bidder logs in again.

@@ -108,6 +108,7 @@ This section locks down details so model classes can be implemented consistently
    - display_name
    - last_auction_id (for returning bidders to most recent auction)
    - created_at
+   - last_auction_id is updated on join and on auction switch.
 
 3) AuctionMembership
    - id

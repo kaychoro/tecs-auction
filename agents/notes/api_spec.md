@@ -136,6 +136,8 @@ Required fields: bidder_id, bidder_number, display_name, subtotal, total, paid
 ```
 Required fields: id, role, email, phone, display_name, created_at  
 Optional fields: email_verified_at, last_auction_id
+Notes:
+- last_auction_id is updated on join and on auction switch.
 
 ## List Response Envelope
 All list endpoints return:
