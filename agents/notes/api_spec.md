@@ -402,6 +402,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Bidder Totals
+- AuditLog: payment_status_changed
 - PATCH `/api/auctions/{auctionId}/pickup/{itemId}`
   - Mark item picked up (L3+).
   - Request:
@@ -411,6 +412,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: `{ "item_id": "uuid", "picked_up": true }`
+- AuditLog: pickup_status_changed
 - External payment URL should open in a new tab; bidders return by closing the tab.
 
 ## Notifications

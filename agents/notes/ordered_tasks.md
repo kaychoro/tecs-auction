@@ -13,7 +13,7 @@ This is an execution order for the tasks in `agents/notes/task_list.md`. Items a
 9) ✓ Auction lifecycle & admin controls
 10) ✓ Items & media pipeline
 11) ✓ Bidding engine (silent items)
-12) Totals & statuses (admin + bidder)
+12) ✓ Totals & statuses (admin + bidder)
 13) Notifications (in-app)
 14) AuditLog coverage checklist
 15) CSV export permission check and scope

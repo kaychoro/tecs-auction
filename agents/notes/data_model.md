@@ -64,6 +64,7 @@ This section locks down details so model classes can be implemented consistently
 ### Totals / Invoice Strategy
 - Totals are stored in an Invoice table for fast reads and updated transactionally on bid changes and live winner assignments.
 - Totals can be recomputed from bids for audit reconciliation.
+ - Payment status and pickup status updates are logged in AuditLog.
 
 ### Images
 - One image per item; stored as original plus scaled variants.

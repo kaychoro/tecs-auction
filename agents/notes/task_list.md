@@ -163,7 +163,7 @@
   - Add client deep-link behavior to item detail.
     - Map ref_type/ref_id to route and refresh item view.
 
-- Totals & statuses (admin + bidder)
+- ✓ Totals & statuses (admin + bidder)
   - Implement totals calculation and storage (invoice strategy).
     - Define invoice schema and update triggers.
     - Add recompute path for reconciliation.
