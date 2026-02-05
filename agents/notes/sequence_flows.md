@@ -58,6 +58,12 @@ Key end-to-end flows with timing, permissions, and audit points.
 8. On failure, system returns a reason (phase closed, bid too low, outbid) for UI display.
 9. On network error/timeout, UI shows an error and allows manual retry (no automatic retry).
 
+## 15) Notification Read Flow
+1. User opens notifications list (sorted by newest first).
+2. User taps a notification.
+3. Client marks notification as read and deep-links to the referenced item.
+4. If the referenced item is currently visible, client refreshes item detail.
+
 ## 8) Item Detail (No Bids Yet)
 1. Item detail shows starting price as the current bid.
 2. Bidder can place a bid using the standard bid controls.

@@ -152,7 +152,7 @@
   - Return reason codes for bid rejection (phase_closed, bid_too_low, outbid).
     - Map rejection to HTTP status and error code.
 
-- Notifications (in-app)
+- ✓ Notifications (in-app)
   - Create outbid notification on successful higher bid.
     - Determine displaced bidder and avoid notifying the same user.
     - Write notification record with ref_type/ref_id.

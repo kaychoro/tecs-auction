@@ -419,6 +419,7 @@ Defaults: page=1, page_size=25, max page_size=100.
 - GET `/api/notifications`
   - List in-app notifications for current user.
   - Response: List<Notification>
+  - Behavior: default sort by created_at desc.
 - Each notification includes:
   - `id`, `type`, `message`, `created_at`, `read_at`
   - `ref_type` and `ref_id` (e.g., `item` and `itemId`) to link the notification to the relevant entity
