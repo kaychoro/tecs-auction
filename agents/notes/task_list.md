@@ -213,7 +213,7 @@
   - Add access control for admin-only QR/PDF generation.
     - Enforce L1/L2 role checks.
 
-- QA test plan for high-risk paths
+- ✓ QA test plan for high-risk paths
   - Define bid race condition test scenarios and expected outcomes.
     - Include tie bid and late bid cases.
   - Define phase auto-advance tests (schedule + manual override).
