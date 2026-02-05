@@ -44,7 +44,8 @@ This section locks down details so model classes can be implemented consistently
 ### Roles and Membership
 - User.role represents global role (Bidder, AdminL1, AdminL2, AdminL3).
 - AuctionMembership is required for all non-L1 users to access an auction.
-- AuctionMembership.role_override (nullable) can downscope an L2 to L3 for a specific auction.
+- AuctionMembership.role_override (nullable) can downscope privileges for a specific auction (e.g., AdminL2 -> AdminL3).
+- Effective role = min(global role, role_override) by privilege level (role_override cannot up-scope).
 
 ### Bids and Ordering
 - placed_at is server-generated to avoid client clock skew.
@@ -72,6 +73,8 @@ This section locks down details so model classes can be implemented consistently
 - item_created, item_updated, item_deleted
 - live_winner_assigned
 - auction_phase_changed, auction_code_changed
+- membership_role_changed
+- membership_status_changed
 - payment_status_changed, pickup_status_changed
 
 ### Notifications

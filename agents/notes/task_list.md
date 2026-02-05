@@ -80,7 +80,7 @@
     - Define fallback UI behavior.
 
 ## P1 Items
-- Role & membership enforcement rules
+- ✓ Role & membership enforcement rules
   - Define auction membership check middleware/guard for all endpoints.
     - Create shared auth/role guard helper.
     - Apply guard to each endpoint group.

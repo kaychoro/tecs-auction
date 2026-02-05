@@ -21,6 +21,54 @@
   - 429 rate limiting (if enabled)
 - Server-side role and auction membership checks are mandatory for all endpoints.
 
+## Role Resolution
+- Effective role is derived from the user's global role and the AuctionMembership.role_override.
+- role_override can only down-scope privileges (e.g., AdminL2 -> AdminL3 for a specific auction).
+- L1 is global and does not require auction membership for access.
+
+## Role Matrix (Endpoint Groups)
+- Auth:
+  - GET `/api/users/me`: any authenticated user
+- Auctions:
+  - POST `/api/auctions`: AdminL1
+  - GET `/api/auctions`: AdminL1 (all), AdminL2/AdminL3 (assigned)
+  - GET `/api/auctions/joined`: Bidder/AdminL2/AdminL3 (joined only)
+  - GET `/api/auctions/{auctionId}`: any auction member
+  - PATCH `/api/auctions/{auctionId}`: AdminL1/AdminL2
+  - POST `/api/auctions/{auctionId}/join`: Bidder/AdminL2/AdminL3
+  - PATCH `/api/auctions/{auctionId}/code`: AdminL1
+  - PATCH `/api/auctions/{auctionId}/phase`: AdminL1
+  - PATCH `/api/auctions/{auctionId}/notifications`: AdminL1
+  - PATCH `/api/auctions/{auctionId}/membership`: AdminL1
+- Items:
+  - POST `/api/auctions/{auctionId}/items`: AdminL2/AdminL1
+  - GET `/api/auctions/{auctionId}/items`: any auction member (phase-dependent for bidders)
+  - GET `/api/items/{itemId}`: any auction member
+  - PATCH `/api/items/{itemId}`: AdminL2/AdminL1
+  - DELETE `/api/items/{itemId}`: AdminL2/AdminL1
+  - POST `/api/items/{itemId}/image`: AdminL2/AdminL1
+- Bidding:
+  - POST `/api/items/{itemId}/bids`: Bidder (Open phase only)
+  - DELETE `/api/bids/{bidId}`: AdminL2/AdminL1
+  - GET `/api/items/{itemId}/bids`: AdminL2/AdminL1
+- Live Auction:
+  - POST `/api/items/{itemId}/winner`: AdminL2/AdminL1 (Pending+)
+- Totals & Status:
+  - GET `/api/auctions/{auctionId}/totals/me`: Bidder (self)
+  - GET `/api/auctions/{auctionId}/totals`: AdminL3/AdminL2/AdminL1
+  - PATCH `/api/auctions/{auctionId}/payments/{bidderId}`: AdminL3/AdminL2/AdminL1
+  - PATCH `/api/auctions/{auctionId}/pickup/{itemId}`: AdminL3/AdminL2/AdminL1
+- Notifications:
+  - GET `/api/notifications`: any authenticated user
+  - PATCH `/api/notifications/{notificationId}`: notification owner
+  - PATCH `/api/notifications/mark-all-read`: authenticated user
+- Reports & Exports:
+  - GET `/api/auctions/{auctionId}/reports`: AdminL2/AdminL1
+  - GET `/api/auctions/{auctionId}/reports/export?format=csv`: AdminL2/AdminL1
+- QR & PDF:
+  - GET `/api/items/{itemId}/qr`: any auction member
+  - GET `/api/auctions/{auctionId}/items/qr-pdf`: AdminL2/AdminL1
+
 ## Schemas (Draft)
 Field requirements: unless noted, fields are required in responses; optional fields are marked `optional` in the lists below. Request payloads only accept the fields listed.
 
