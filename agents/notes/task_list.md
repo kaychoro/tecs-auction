@@ -126,7 +126,7 @@
   - Add audit logging for phase and auction code changes.
     - Add AuditLog entries with actor and target.
 
-- Items & media pipeline
+- ✓ Items & media pipeline
   - Implement item CRUD endpoints with role checks.
     - Add create, update, delete endpoints.
     - Add list and detail endpoints for admins/bidders.

@@ -67,6 +67,7 @@ This section locks down details so model classes can be implemented consistently
 ### Images
 - One image per item; stored as original plus scaled variants.
 - Scaled variants (example sizes): 320px, 640px, 1024px width, keep aspect ratio.
+ - Validate image type (jpeg/png/webp) and enforce size limits at upload time.
 
 ### AuditLog Actions (Enumerated)
 - bid_placed, bid_removed, bid_restored

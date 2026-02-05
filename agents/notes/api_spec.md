@@ -323,6 +323,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Item
+- AuditLog: item_created
 - GET `/api/auctions/{auctionId}/items`
   - List items (phase-dependent for bidders).
   - Response: List<Item>
@@ -341,9 +342,11 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Item
+- AuditLog: item_updated
 - DELETE `/api/items/{itemId}`
   - Remove item (L2+).
   - Response: `{ "deleted": true }`
+- AuditLog: item_deleted
 - POST `/api/items/{itemId}/image`
   - Upload/replace item image (L2+; direct multipart upload).
   - Request: multipart form-data with `file`

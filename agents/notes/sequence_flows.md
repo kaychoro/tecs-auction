@@ -62,6 +62,13 @@ Key end-to-end flows with timing, permissions, and audit points.
 1. Item detail shows starting price as the current bid.
 2. Bidder can place a bid using the standard bid controls.
 
+## 14) Item Create/Update with Image
+1. Admin creates or updates an item (name, type, starting_price, description).
+2. System validates role and writes item changes.
+3. Admin uploads image (multipart form upload).
+4. System stores original image, generates scaled variants, and updates item image metadata.
+5. System logs item_created/item_updated in AuditLog.
+
 ## 3) Live Auction Winner Assignment (Pending or later)
 1. L2 admin selects live item and assigns winner + final price.
 2. System validates phase and permissions.
