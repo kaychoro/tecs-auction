@@ -76,6 +76,11 @@ Key end-to-end flows with timing, permissions, and audit points.
 5. System persists phase change and records AuditLog entry.
 6. UI updates for bidders/admins based on new phase.
 
+## 13) Auction Configuration Updates
+1. L1/L2 updates auction name, time zone, or payment URL.
+2. System validates role and writes the updates.
+3. System logs auction_updated in AuditLog.
+
 ## 9) Auction Code Change
 1. L1 updates the auction code.
 2. System applies the new code for future joins only.

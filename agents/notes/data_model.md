@@ -73,6 +73,8 @@ This section locks down details so model classes can be implemented consistently
 - item_created, item_updated, item_deleted
 - live_winner_assigned
 - auction_phase_changed, auction_code_changed
+- auction_updated
+- auction_notifications_updated
 - membership_role_changed
 - membership_status_changed
 - payment_status_changed, pickup_status_changed

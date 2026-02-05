@@ -250,6 +250,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Auction
+- AuditLog: auction_updated
 - POST `/api/auctions/{auctionId}/join`
   - Join auction with auction code.
   - Request:
@@ -286,6 +287,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Auction
+- AuditLog: auction_phase_changed
 - PATCH `/api/auctions/{auctionId}/notifications`
   - Update notification settings (L1; in-app only in v1).
   - Request:
@@ -295,6 +297,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Auction
+- AuditLog: auction_notifications_updated
 - PATCH `/api/auctions/{auctionId}/membership`
   - Assign L2/L3 admins to auction (L1).
   - Request:
@@ -305,6 +308,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: AuctionMembership summary
+- AuditLog: membership_role_changed
 
 ## Items
 - POST `/api/auctions/{auctionId}/items`

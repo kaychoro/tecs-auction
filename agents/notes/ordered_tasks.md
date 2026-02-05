@@ -10,7 +10,7 @@ This is an execution order for the tasks in `agents/notes/task_list.md`. Items a
 6) ✓ Define "most recent auction" storage
 7) ✓ Role & membership enforcement rules
 8) ✓ Auth + Auction join flow end-to-end
-9) Auction lifecycle & admin controls
+9) ✓ Auction lifecycle & admin controls
 10) Items & media pipeline
 11) Bidding engine (silent items)
 12) Totals & statuses (admin + bidder)

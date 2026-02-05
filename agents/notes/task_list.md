@@ -110,7 +110,7 @@
     - Update user doc on join success.
     - Update on auction switch action.
 
-- Auction lifecycle & admin controls
+- ✓ Auction lifecycle & admin controls
   - Implement create auction endpoint and admin UI.
     - Add API for create with validation.
     - Build admin create form and submit handling.
