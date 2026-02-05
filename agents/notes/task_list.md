@@ -182,7 +182,7 @@
   - Add validation to ensure audit entries include actor, target, action.
     - Validate required fields before write.
 
-- CSV export permission check and scope
+- ✓ CSV export permission check and scope
   - Enforce L1/L2 role check on report export endpoint.
     - Add auth guard and role validation.
   - Confirm export scope is limited to auction data.

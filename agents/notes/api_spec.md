@@ -440,6 +440,8 @@ Defaults: page=1, page_size=25, max page_size=100.
   - CSV export (admin; L1/L2).
   - Response: CSV stream
   - AuditLog: report_exported
+  - Errors:
+    - 403 `role_forbidden` when requester is not L1/L2.
 
 ## QR & PDF
 - GET `/api/items/{itemId}/qr`
