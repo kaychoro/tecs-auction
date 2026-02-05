@@ -50,6 +50,13 @@ This section locks down details so model classes can be implemented consistently
 - Tie-breaking: (amount desc, placed_at asc, bid_id asc).
 - Highest bid is derived; no separate mutable "current_high_bid" field.
 
+### Derived Views (Read-Only)
+- Item current high bid is exposed via derived fields in API responses:
+  - current_high_bid
+  - current_high_bidder_id
+  - current_high_bid_placed_at
+- These values are computed transactionally from bids and are not stored on Item records.
+
 ### Totals / Invoice Strategy
 - Totals are stored in an Invoice table for fast reads and updated transactionally on bid changes and live winner assignments.
 - Totals can be recomputed from bids for audit reconciliation.
@@ -230,11 +237,9 @@ This section locks down details so model classes can be implemented consistently
 - description (string|null)
 - type (silent|live)
 - starting_price (number)
-- current_high_bid (number|null)
-- current_high_bidder_id (string|null)
-- current_high_bid_placed_at (timestamp|null)
 - image (map|null)
 - created_at (timestamp)
+  - Note: current high bid values are derived from bids via transactional ordering; not stored on Item.
 
 ### auctions/{auctionId}/bids/{bidId}
 - id (string)

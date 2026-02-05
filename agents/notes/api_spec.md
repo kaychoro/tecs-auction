@@ -64,6 +64,8 @@
   "created_at": "iso8601"
 }
 ```
+Notes:
+- `current_high_bid*` fields are read-only and derived from bids via transactional ordering (not stored as mutable fields on Item).
 
 ### Bid
 ```

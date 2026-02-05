@@ -44,13 +44,16 @@ Key end-to-end flows with timing, permissions, and audit points.
 2. Bidder taps "Bid"; UI shows a confirmation prompt.
 3. On confirm, bidder submits bid for item.
 4. System validates phase=Open and bidder membership.
-5. Server performs atomic compare-and-swap against the item's current_high_bid field.
-6. On success, system records Bid and AuditLog entry.
-7. System updates running totals.
-8. System sends outbid notification(s) to displaced bidder if enabled.
-9. UI refreshes the item page after bid submission.
-10. On failure, system returns a reason (phase closed, bid too low, outbid) for UI display.
-11. On network error/timeout, UI shows an error and allows manual retry (no automatic retry).
+5. Server runs a transaction:
+   - Reads current highest bid for the item (by amount desc, placed_at asc, bid_id asc).
+   - Validates bid amount > current highest (or >= starting price when no bids).
+   - Writes new Bid with server-generated placed_at and bid_id.
+   - Updates derived view for current high bid (read-only fields exposed via API).
+   - Writes AuditLog entry and updates totals.
+6. On success, system sends outbid notification(s) to displaced bidder if enabled.
+7. UI refreshes the item page after bid submission.
+8. On failure, system returns a reason (phase closed, bid too low, outbid) for UI display.
+9. On network error/timeout, UI shows an error and allows manual retry (no automatic retry).
 
 ## 8) Item Detail (No Bids Yet)
 1. Item detail shows starting price as the current bid.

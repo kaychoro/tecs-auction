@@ -11,7 +11,7 @@ This document captures high-level design decisions and proposed module boundarie
 2) Platform stack
    - Firebase Auth for authentication and email verification.
    - Firestore for primary data storage.
-   - Cloud Functions for bidding CAS, phase auto-advance, and PDF/QR generation.
+   - Cloud Functions for transactional bid writes, phase auto-advance, and PDF/QR generation.
 
 3) Auction time zone and phase enforcement
    - Auction time zone is configured at creation (target: MST).
@@ -26,7 +26,7 @@ This document captures high-level design decisions and proposed module boundarie
    - SMS verification not required.
 
 6) Bidding integrity and concurrency
-   - Server-side atomic compare-and-swap for bid acceptance.
+   - Server-side transactional bid write with deterministic ordering for bid acceptance.
    - Earliest timestamp wins on equal bid amounts.
    - Immutable audit trail for bids and admin removals/overrides.
 
@@ -102,7 +102,7 @@ This document captures high-level design decisions and proposed module boundarie
 
 4) Bidding Engine
    - Bid placement rules, increments, phase enforcement.
-   - Concurrency control (atomic compare-and-swap) and tie resolution.
+   - Concurrency control (transactional bid write) and tie resolution.
    - Bid history and audit trail storage.
 
 5) Live Auction Management
