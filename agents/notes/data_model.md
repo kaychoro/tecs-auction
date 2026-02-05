@@ -120,6 +120,7 @@ This section locks down details so model classes can be implemented consistently
    - role_override (optional; for per-auction admin scoping)
    - status (active, revoked)
    - bidder_number (integer, for bidders; unique per auction)
+   - bidder_number is allocated from a per-auction counter document.
 
 4) Item
    - id
@@ -307,6 +308,10 @@ This section locks down details so model classes can be implemented consistently
 - role_override (string|null)
 - status (active|revoked)
 - bidder_number (number|null)
+
+### auctions/{auctionId}/counters/bidder_number
+- value (number)
+- updated_at (timestamp)
 
 ## Suggested Indexes (Firestore)
 - auctions: index on `auction_code` (for join lookup).

@@ -210,6 +210,11 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Current user profile.
   - Response: User
 
+## Client Auth/Registration Flow (Reference)
+- Create user via Firebase Auth (email + password) and collect phone/display_name in app profile.
+- Require email verification before allowing bidding actions.
+- Resend verification is throttled to 5 per hour per email.
+
 ## Auctions
 - POST `/api/auctions`
   - Create auction (L1).
@@ -254,9 +259,13 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: AuctionMembership summary (auction_id, user_id, bidder_number, role_override|null)
+  - Behavior:
+    - Allocates bidder_number using a per-auction counter (unique, non-reused).
+    - Updates user.last_auction_id to the joined auction.
   - Errors:
     - 404 `auction_not_found` when auction_code is invalid.
     - 409 `auction_code_conflict` when auction_code is duplicated.
+    - 409 `membership_exists` when user already joined.
 - PATCH `/api/auctions/{auctionId}/code`
   - Update auction code (L1). Applies to new joiners only; existing bidders remain unaffected.
   - Request:

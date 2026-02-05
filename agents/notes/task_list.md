@@ -92,7 +92,7 @@
   - Add audit logging requirements for role changes and membership updates.
     - Add AuditLog action names and when they fire.
 
-- Auth + Auction join flow end-to-end
+- ✓ Auth + Auction join flow end-to-end
   - Configure Firebase Auth email verification and resend limits.
     - Configure Firebase email templates and verification link.
     - Add resend throttle in client and/or backend.
