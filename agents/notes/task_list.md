@@ -225,7 +225,7 @@
   - Capture smoke test checklist for each phase.
     - List bidder and admin checks per phase.
 
-- Email verification resend limits
+- ✓ Email verification resend limits
   - Implement client-side throttle (UI disable + messaging).
     - Add timer and disable resend button.
   - Add backend guard to enforce 5 per hour per email (if needed).

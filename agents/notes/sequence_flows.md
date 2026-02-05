@@ -24,6 +24,12 @@ Key end-to-end flows with timing, permissions, and audit points.
 6. System assigns bidder number.
 7. System logs membership_role_changed (Bidder) in AuditLog.
 8. System updates user.last_auction_id to the joined auction.
+
+## 18) Verification Resend Throttle
+1. User taps "Resend verification".
+2. System checks resend count in the last hour.
+3. If over limit, return error `verification_throttled` and show message.
+4. If allowed, send verification email and increment count.
 7. If verification is not received, bidder can request a resend from the entry/login UI.
 
 ## 10) Join Additional Auction / Switch Auctions

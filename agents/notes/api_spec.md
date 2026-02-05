@@ -214,6 +214,7 @@ Defaults: page=1, page_size=25, max page_size=100.
 - Create user via Firebase Auth (email + password) and collect phone/display_name in app profile.
 - Require email verification before allowing bidding actions.
 - Resend verification is throttled to 5 per hour per email.
+ - On resend limit exceeded, return 429 `verification_throttled`.
 
 ## Auctions
 - POST `/api/auctions`

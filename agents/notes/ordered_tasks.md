@@ -19,7 +19,7 @@ This is an execution order for the tasks in `agents/notes/task_list.md`. Items a
 15) ✓ CSV export permission check and scope
 16) ✓ Reports & CSV export implementation
 17) ✓ QR & PDF generation
-18) Email verification resend limits
+18) ✓ Email verification resend limits
 19) UX confirmation & notification behaviors
 20) QA test plan for high-risk paths
 21) Security & compliance details
