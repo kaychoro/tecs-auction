@@ -14,6 +14,7 @@
 - HTTP status conventions:
   - 200 success
   - 400 validation errors (e.g., `bid_too_low`)
+  - 401 unauthenticated (missing/invalid token)
   - 403 unauthorized/role issues
   - 404 not found
   - 409 conflict (e.g., `outbid`, `phase_closed`)
@@ -367,3 +368,28 @@ Defaults: page=1, page_size=25, max page_size=100.
 - GET `/api/auctions/{auctionId}/items/qr-pdf`
   - PDF with one item per page (admin).
   - Response: application/pdf
+## Error Status Matrix (Common Cases)
+- Authentication:
+  - 401 `auth_required` when `Authorization` token is missing or invalid.
+  - 403 `role_forbidden` when role/membership is insufficient.
+- Bidding:
+  - 400 `bid_too_low` when amount <= current highest.
+  - 409 `outbid` when another bid wins in the transaction window.
+  - 409 `phase_closed` when auction phase is not Open.
+- Auctions:
+  - 404 `auction_not_found` when auctionId is invalid.
+  - 409 `auction_code_conflict` when auction_code is already in use.
+
+## Error Examples
+- `phase_closed`:
+  ```
+  { "error": { "code": "phase_closed", "message": "Bidding is closed for this auction.", "details": { "phase": "Pending" } } }
+  ```
+- `bid_too_low`:
+  ```
+  { "error": { "code": "bid_too_low", "message": "Bid must be higher than the current bid.", "details": { "current_high_bid": 42 } } }
+  ```
+- `outbid`:
+  ```
+  { "error": { "code": "outbid", "message": "Another bidder placed a higher bid.", "details": { "current_high_bid": 45 } } }
+  ```
