@@ -244,7 +244,7 @@
     - Ensure back navigation works after deep link.
 
 ## P3 Items
-- Security & compliance details
+- ✓ Security & compliance details
   - Define PII retention policy and deletion workflow.
     - Document retention period and deletion triggers.
   - Specify encryption at rest requirements for Firestore/Storage.

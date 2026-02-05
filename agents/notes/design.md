@@ -137,3 +137,9 @@ This document captures high-level design decisions and proposed module boundarie
 ## Open Questions / Risks (For Follow-Up)
 - Data retention and privacy policy (PII handling) are intentionally minimal for now.
 - Availability, backup, and recovery targets are not specified.
+ 
+## Security & Compliance Notes
+- PII retention: retain bidder/admin PII until auction is Closed + 180 days, then purge user PII fields (email, phone) while retaining bid history for audit.
+- Deletion workflow: L1 can request immediate purge for a user; audit log is preserved with redacted PII.
+- Encryption at rest: rely on Firebase/Google-managed encryption; no custom key management in v1.
+- Least privilege: enforce role/membership checks per endpoint; L1 has global access, others are per-auction only.

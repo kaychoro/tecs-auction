@@ -22,7 +22,7 @@ This is an execution order for the tasks in `agents/notes/task_list.md`. Items a
 18) ✓ Email verification resend limits
 19) ✓ UX confirmation & notification behaviors
 20) ✓ QA test plan for high-risk paths
-21) Security & compliance details
+21) ✓ Security & compliance details
 22) Accessibility & device support matrix
 23) Live auction winner assignment
 24) Session return behavior
