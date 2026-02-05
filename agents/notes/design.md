@@ -52,6 +52,7 @@ This document captures high-level design decisions and proposed module boundarie
 
 12) Notification UX
    - Tapping an outbid notification deep-links to the relevant item detail page.
+   - If the referenced item is currently displayed, the client refreshes the item view.
 
 13) Account UX
    - Email verification can be resent from the entry/login UI.

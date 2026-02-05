@@ -233,7 +233,7 @@
   - Add error handling and messaging on limit exceeded.
     - Display user-friendly error text.
 
-- UX confirmation & notification behaviors
+- ✓ UX confirmation & notification behaviors
   - Define bid confirmation copy and interaction timing.
     - Include confirmation prompt text and button labels.
   - Define error presentation for bid failure reasons.

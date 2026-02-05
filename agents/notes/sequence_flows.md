@@ -75,6 +75,12 @@ Key end-to-end flows with timing, permissions, and audit points.
 3. Client marks notification as read and deep-links to the referenced item.
 4. If the referenced item is currently visible, client refreshes item detail.
 
+## 19) Bid Confirmation & Error UX
+1. User taps "Bid"; client shows a confirmation dialog with bid amount.
+2. On confirm, client submits bid.
+3. On error, client shows reason-specific messaging (phase_closed, bid_too_low, outbid).
+4. Client offers manual retry; no automatic retry.
+
 ## 8) Item Detail (No Bids Yet)
 1. Item detail shows starting price as the current bid.
 2. Bidder can place a bid using the standard bid controls.
