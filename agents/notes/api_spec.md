@@ -435,7 +435,19 @@ Defaults: page=1, page_size=25, max page_size=100.
 ## Reports & Exports
 - GET `/api/auctions/{auctionId}/reports`
   - Summary reports (admin).
-  - Response: report summary object (fields TBD)
+  - Response:
+    ```
+    {
+      "auction_id": "uuid",
+      "generated_at": "iso8601",
+      "totals": {
+        "bidder_count": 0,
+        "items_count": 0,
+        "items_sold_count": 0,
+        "gross_total": 0
+      }
+    }
+    ```
 - GET `/api/auctions/{auctionId}/reports/export?format=csv`
   - CSV export (admin; L1/L2).
   - Response: CSV stream

@@ -191,7 +191,7 @@
     - Return 403 with standard error format.
 
 ## P2 Items
-- Reports & CSV export implementation
+- ✓ Reports & CSV export implementation
   - Define report fields and data sources.
     - List fields for bidder totals and item results.
   - Implement report aggregation queries for summary.

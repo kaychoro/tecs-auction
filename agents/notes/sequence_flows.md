@@ -117,6 +117,11 @@ Key end-to-end flows with timing, permissions, and audit points.
 2. System generates report data.
 3. System returns CSV download.
 
+## 16) Reports Summary (Admin)
+1. Admin requests summary report.
+2. System aggregates totals and counts for the auction.
+3. System returns report summary payload.
+
 ## Implementation Decisions (Persona-Resolved)
 - Bid placement failures return a reason that the UI displays on the item page (toast or message box).
 - Phases auto-advance on schedule; L1 can override at any time.
