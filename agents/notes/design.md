@@ -88,6 +88,11 @@ This document captures high-level design decisions and proposed module boundarie
    - Firebase Auth manages sessions and re-authentication.
    - After re-login, bidders return to their most recent auction.
 
+22) Accessibility & Device Support
+   - Target WCAG 2.1 AA for all bidder/admin flows.
+   - Supported devices: iOS 16+, Android 12+, and latest two versions of Chrome/Safari/Edge.
+   - Keyboard navigation and screen reader support required for core flows (join, bid, admin updates).
+
 ## Proposed Module Boundaries
 1) Auction Core
    - Auction lifecycle, phases, and timing (time zone aware).

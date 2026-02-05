@@ -254,7 +254,7 @@
   - Document least-privilege rules and admin access boundaries.
     - Add role matrix and data access rules.
 
-- Accessibility & device support matrix
+- ✓ Accessibility & device support matrix
   - Define target WCAG level and accessibility expectations.
     - Document contrast and focus indicator requirements.
   - List supported device classes and minimum OS/browser versions.
