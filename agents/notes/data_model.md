@@ -52,6 +52,7 @@ This section locks down details so model classes can be implemented consistently
 - placed_at precision is milliseconds (Firestore timestamp precision).
 - Tie-breaking: (amount desc, placed_at asc, bid_id asc).
 - Highest bid is derived; no separate mutable "current_high_bid" field.
+ - Bid transactions update totals and derived views atomically.
 
 ### Derived Views (Read-Only)
 - Item current high bid is exposed via derived fields in API responses:

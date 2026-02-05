@@ -365,9 +365,11 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: Bid
+- AuditLog: bid_placed
 - DELETE `/api/bids/{bidId}`
   - Remove bid (L2+; logged in audit trail).
   - Response: `{ "deleted": true }`
+- AuditLog: bid_removed
 - GET `/api/items/{itemId}/bids`
   - Bid history (admin).
   - Response: List<Bid>

@@ -139,7 +139,7 @@
   - Enforce image size/type constraints and error handling.
     - Define limits and error codes.
 
-- Bidding engine (silent items)
+- ✓ Bidding engine (silent items)
   - Implement transaction: read highest bid, validate amount, write bid, update derived view.
     - Use a Firestore transaction or equivalent.
     - Store server timestamp and bid_id.
