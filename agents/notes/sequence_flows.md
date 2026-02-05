@@ -42,6 +42,11 @@ Key end-to-end flows with timing, permissions, and audit points.
 2. Bidder scans QR using the device camera app (not inside this app).
 3. QR deep-links to the item detail page in the auction app/web view.
 
+## 17) QR PDF Generation
+1. Admin requests QR PDF for an auction.
+2. System generates a PDF with one item per page and embedded QR codes.
+3. System returns the PDF for download/print.
+
 ## 2) Silent Bid Placement (Open Phase)
 1. Bidder selects a bid amount using +/- controls ($1 increments).
 2. Bidder taps "Bid"; UI shows a confirmation prompt.

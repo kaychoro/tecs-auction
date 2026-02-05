@@ -203,7 +203,7 @@
   - Add basic validation for auction scope and input params.
     - Validate auction_id and format query param.
 
-- QR & PDF generation
+- ✓ QR & PDF generation
   - Implement QR code generation for item deep links.
     - Define URL format and routing.
   - Implement QR endpoint returning image content.

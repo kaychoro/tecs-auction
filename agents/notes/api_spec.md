@@ -459,6 +459,7 @@ Defaults: page=1, page_size=25, max page_size=100.
 - GET `/api/items/{itemId}/qr`
   - QR code (image).
   - Response: image/png
+- URL payload: item deep link URL (client route).
 - QR codes deep-link to item detail pages and are intended to be scanned with the device camera app (no in-app scanner).
 - GET `/api/auctions/{auctionId}/items/qr-pdf`
   - PDF with one item per page (admin).
