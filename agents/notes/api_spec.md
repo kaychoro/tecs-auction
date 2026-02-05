@@ -86,6 +86,9 @@ Optional fields: description, image, current_high_bid, current_high_bidder_id, c
 }
 ```
 Required fields: id, auction_id, item_id, bidder_id, amount, placed_at
+Notes:
+- `placed_at` is server-generated using Firestore server timestamp and returned as ISO-8601 in UTC.
+- Bid ordering is deterministic: amount desc, placed_at asc, bid_id asc.
 
 ### Notification
 ```

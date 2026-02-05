@@ -47,6 +47,7 @@ This section locks down details so model classes can be implemented consistently
 
 ### Bids and Ordering
 - placed_at is server-generated to avoid client clock skew.
+- placed_at precision is milliseconds (Firestore timestamp precision).
 - Tie-breaking: (amount desc, placed_at asc, bid_id asc).
 - Highest bid is derived; no separate mutable "current_high_bid" field.
 
