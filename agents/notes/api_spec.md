@@ -204,6 +204,9 @@ Defaults: page=1, page_size=25, max page_size=100.
     }
     ```
   - Response: AuctionMembership summary (auction_id, user_id, bidder_number, role_override|null)
+  - Errors:
+    - 404 `auction_not_found` when auction_code is invalid.
+    - 409 `auction_code_conflict` when auction_code is duplicated.
 - PATCH `/api/auctions/{auctionId}/code`
   - Update auction code (L1). Applies to new joiners only; existing bidders remain unaffected.
   - Request:

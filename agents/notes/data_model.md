@@ -79,7 +79,7 @@ This section locks down details so model classes can be implemented consistently
 - Notification.delivery_channel: in_app, email.
 
 ### Indices / Uniqueness
-- Auction: unique (auction_code) across the deployment; index on status.
+- Auction: unique (auction_code) across the deployment; enforce with a dedicated uniqueness document or a Firestore rule-backed index pattern; index on status.
 - AuctionMembership: unique (auction_id, user_id).
 - Bidder numbers: unique per auction (enforced via membership or bidder mapping table).
 - Item: unique (auction_id, name) optional; index on auction_id.

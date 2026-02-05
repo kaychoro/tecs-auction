@@ -20,7 +20,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 2. Firebase Auth creates User (role=Bidder) and sends email verification.
 3. Bidder verifies email.
 4. Bidder enters auction code.
-5. System validates auction code and creates AuctionMembership.
+5. System validates auction code uniqueness mapping and creates AuctionMembership.
 6. System assigns bidder number.
 7. If verification is not received, bidder can request a resend from the entry/login UI.
 
