@@ -272,7 +272,7 @@
   - Define UI flow for selecting winner and entering final price.
     - Add admin screen and confirmation step.
 
-- Session return behavior
+- ✓ Session return behavior
   - Confirm last auction selection logic on login.
     - Document rule when last_auction_id is null.
   - Implement fallback when last auction is closed or revoked.

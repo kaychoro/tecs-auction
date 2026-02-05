@@ -42,6 +42,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 1. If a session expires, bidder logs in again.
 2. System returns bidder to the most recent auction they joined.
 3. Firebase Auth manages session refresh under the hood.
+4. If last_auction_id is closed or membership revoked, redirect to join/switch screen.
 
 ## 7) QR Code Usage (Out of App)
 1. Admin generates QR codes for items.

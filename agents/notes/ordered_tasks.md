@@ -25,7 +25,7 @@ This is an execution order for the tasks in `agents/notes/task_list.md`. Items a
 21) ✓ Security & compliance details
 22) ✓ Accessibility & device support matrix
 23) ✓ Live auction winner assignment
-24) Session return behavior
+24) ✓ Session return behavior
 
 Notes:
 - "Bid concurrency + ordering model" is resolved by tasks 1–3 and should be verified while implementing the bidding engine.

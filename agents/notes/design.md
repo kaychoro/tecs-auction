@@ -87,6 +87,7 @@ This document captures high-level design decisions and proposed module boundarie
 21) Session UX
    - Firebase Auth manages sessions and re-authentication.
    - After re-login, bidders return to their most recent auction.
+   - If last_auction_id is closed or membership revoked, show join/switch screen.
 
 22) Accessibility & Device Support
    - Target WCAG 2.1 AA for all bidder/admin flows.
