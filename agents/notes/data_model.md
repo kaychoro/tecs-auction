@@ -39,6 +39,7 @@ This section locks down details so model classes can be implemented consistently
   - phase_schedule: map of {phase -> starts_at, ends_at} in auction time zone.
   - current_phase: derived from time or explicitly set by L1.
 - Hard cutoffs: a bid is accepted only if placed_at is within Open window (inclusive of start, exclusive of end).
+ - Phase evaluation uses auction time zone for schedule display and comparison; timestamps are stored in UTC.
 
 ### Roles and Membership
 - User.role represents global role (Bidder, AdminL1, AdminL2, AdminL3).

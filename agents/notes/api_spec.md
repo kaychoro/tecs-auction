@@ -46,6 +46,9 @@ Field requirements: unless noted, fields are required in responses; optional fie
   "created_at": "iso8601"
 }
 ```
+Notes:
+- Phase windows are enforced with inclusive start and exclusive end.
+- Phase schedule timestamps are stored in UTC and displayed in the auction time zone.
 Required fields: id, name, status, time_zone, phase_schedule, auction_code, notification_settings, created_by, created_at  
 Optional fields: payment_url
 

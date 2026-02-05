@@ -69,8 +69,9 @@ Key end-to-end flows with timing, permissions, and audit points.
 1. System auto-advances phase based on scheduled times.
 2. L1 can override phase or timing manually.
 3. System validates role and phase rules.
-4. System persists phase change and records AuditLog entry.
-5. UI updates for bidders/admins based on new phase.
+4. If a manual override occurs, it takes precedence and writes the updated phase_schedule/status.
+5. System persists phase change and records AuditLog entry.
+6. UI updates for bidders/admins based on new phase.
 
 ## 9) Auction Code Change
 1. L1 updates the auction code.
