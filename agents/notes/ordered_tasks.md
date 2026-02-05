@@ -2,12 +2,12 @@
 
 This is an execution order for the tasks in `agents/notes/task_list.md`. Items are ordered by dependency, not by original priority labels. For sub-task breakdowns, see the matching entries in `agents/notes/task_list.md`.
 
-1) Define request/response schemas for key endpoints
-2) Confirm HTTP status conventions and error codes
-3) Lock bid ordering & server time source
-4) Define auction phase timing enforcement contract
-5) Enforce auction code uniqueness at DB level
-6) Define "most recent auction" storage
+1) ✓ Define request/response schemas for key endpoints
+2) ✓ Confirm HTTP status conventions and error codes
+3) ✓ Lock bid ordering & server time source
+4) ✓ Define auction phase timing enforcement contract
+5) ✓ Enforce auction code uniqueness at DB level
+6) ✓ Define "most recent auction" storage
 7) Role & membership enforcement rules
 8) Auth + Auction join flow end-to-end
 9) Auction lifecycle & admin controls

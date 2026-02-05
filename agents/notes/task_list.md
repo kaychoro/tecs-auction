@@ -1,7 +1,7 @@
 # Task List
 
 ## P0 Items
-- Bid concurrency + ordering model (resolved direction, still needs updates in specs)
+- ✓ Bid concurrency + ordering model (resolved direction, still needs updates in specs)
   - Verify `agents/notes/api_spec.md` exposes derived `current_high_bid*` fields as read-only.
     - Add a short read-only note under Item schema.
     - Ensure no write endpoints accept `current_high_bid*`.
@@ -18,7 +18,7 @@
     - Note server-generated timestamps and bid_id in the steps.
     - Clarify derived view update location (read model or computed response).
 
-- Lock bid ordering & server time source
+- ✓ Lock bid ordering & server time source
   - Specify server time source (e.g., Firestore server timestamp) for `placed_at`.
     - Pick the concrete source and document it once.
   - Define `placed_at` precision requirement (milliseconds vs microseconds).
@@ -30,7 +30,7 @@
   - Ensure ordering rules are referenced in bidding engine implementation notes.
     - Add to bidding engine section in notes or inline comment.
 
-- Define auction phase timing enforcement contract
+- ✓ Define auction phase timing enforcement contract
   - Confirm `phase_schedule` schema in `agents/notes/api_spec.md` and `agents/notes/data_model.md`.
     - Ensure fields are consistent across both files.
   - Document inclusive start / exclusive end enforcement rule.
@@ -42,7 +42,7 @@
   - Add audit logging requirement for manual phase changes.
     - Add to AuditLog action list if missing.
 
-- Confirm HTTP status conventions and error codes
+- ✓ Confirm HTTP status conventions and error codes
   - Define status codes for bid failures and authorization (400 vs 403 vs 409).
     - Create a small status matrix for common failure cases.
   - Ensure standard error format is consistent in `agents/notes/api_spec.md`.
@@ -52,7 +52,7 @@
   - Verify UI handling expectations align with API error codes.
     - Ensure UI notes reference the same error codes.
 
-- Define request/response schemas for key endpoints
+- ✓ Define request/response schemas for key endpoints
   - Enumerate required vs optional fields for auctions, items, bids, notifications.
     - Add a required/optional table per entity.
   - Specify request payloads for create/update endpoints and response shapes for list/detail.
@@ -63,7 +63,7 @@
   - Align schemas with Firestore field types in `agents/notes/data_model.md`.
     - Resolve any field name mismatches.
 
-- Enforce auction code uniqueness at DB level
+- ✓ Enforce auction code uniqueness at DB level
   - Specify unique index/constraint for auction_code in data model notes.
     - Add a note on how uniqueness is enforced in Firestore.
   - Document collision handling in auction create/update flows.
@@ -71,7 +71,7 @@
   - Update join flow to return clear error when auction_code is invalid or duplicate.
     - Add join response examples for invalid code.
 
-- Define "most recent auction" storage
+- ✓ Define "most recent auction" storage
   - Confirm `user.last_auction_id` field usage in `agents/notes/data_model.md`.
     - Ensure field is present in user schema.
   - Document update trigger (on join and on active auction switch).
