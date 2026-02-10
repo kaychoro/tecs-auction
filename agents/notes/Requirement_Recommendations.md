@@ -20,6 +20,6 @@
 
 ## Quality Assurance Persona
 - Add acceptance criteria for each phase transition, including edge cases (late bids, clock skew, network delays).
-- Define expected behavior for concurrent bidding on the same item (last-write vs. atomic compare-and-swap).
+- Define expected behavior for concurrent bidding on the same item (transactional bid writes with deterministic ordering).
 - Specify testable scenarios for QR code generation and PDF export (one item per page, scan target links).
 - Clarify accessibility expectations (e.g., WCAG level) and mobile device support matrix for bidders.
