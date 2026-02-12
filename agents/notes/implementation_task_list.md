@@ -99,7 +99,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - create/update validations.
 
-20) Auctions API: list + detail
+20) ✓ Auctions API: list + detail
    - GET /api/auctions.
    - GET /api/auctions/{auctionId}.
    - Unit tests:

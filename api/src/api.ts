@@ -28,6 +28,8 @@ export interface ApiDependencies {
     auctionId: string,
     updates: {name?: string; timeZone?: string; paymentUrl?: string | null}
   ) => Promise<AuctionRecord | null>;
+  listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
+  getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
 }
 
 /**
@@ -49,10 +51,21 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       return;
     }
 
-    const auctionId = parseAuctionId(req.path);
-    if (req.method === "PATCH" && auctionId) {
-      await handlePatchAuction(req, res, deps, auctionId);
+    if (req.method === "GET" && req.path === "/auctions") {
+      await handleGetAuctions(req, res, deps);
       return;
+    }
+
+    const auctionId = parseAuctionId(req.path);
+    if (auctionId) {
+      if (req.method === "PATCH") {
+        await handlePatchAuction(req, res, deps, auctionId);
+        return;
+      }
+      if (req.method === "GET") {
+        await handleGetAuctionById(req, res, deps, auctionId);
+        return;
+      }
     }
 
     const notFound = buildErrorResponse(404, "not_found", "Endpoint not found");
@@ -207,6 +220,78 @@ async function handlePatchAuction(
   }
 }
 
+/**
+ * Handles GET /auctions.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ */
+async function handleGetAuctions(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const auctions = await deps.listAuctionsForActor(actor);
+    res.status(200).json({
+      data: auctions,
+      page: 1,
+      pageSize: auctions.length,
+      total: auctions.length,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/:auctionId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionById(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const visibleAuctions = await deps.listAuctionsForActor(actor);
+      const isVisible = visibleAuctions
+        .some((auction) => auction.id === auctionId);
+      if (!isVisible) {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const auction = await deps.getAuctionById(auctionId);
+    if (!auction) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json(auction);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
 interface AuthenticatedActor {
   id: string;
   role: "Bidder" | "AdminL3" | "AdminL2" | "AdminL1";
@@ -353,5 +438,14 @@ function createDefaultDependencies(): ApiDependencies {
     createAuction: (input) => auctionsRepo.createAuction(input),
     updateAuction: (auctionId, updates) =>
       auctionsRepo.updateAuction(auctionId, updates),
+    listAuctionsForActor: async (actor: AuthenticatedActor) => {
+      if (actor.role === "AdminL1") {
+        const snapshot = await getFirestore().collection("auctions").get();
+        return snapshot.docs.map((doc) => doc.data() as AuctionRecord);
+      }
+      return [];
+    },
+    getAuctionById: (auctionId: string) =>
+      auctionsRepo.getAuctionById(auctionId),
   };
 }
