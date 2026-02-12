@@ -83,7 +83,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - audit log write and read.
 
-17) Audit logging helper
+17) ✓ Audit logging helper
    - Implement shared audit log helper.
    - Unit tests:
      - audit log entry created with correct action/metadata.
