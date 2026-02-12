@@ -63,7 +63,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - bid write creates bid record.
 
-13) Firestore repo: derived bid views
+13) ✓ Firestore repo: derived bid views
    - Implement read-model queries for current high bid.
    - Unit tests:
      - derived view returns expected current high bid.
