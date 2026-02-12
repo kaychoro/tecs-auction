@@ -88,7 +88,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - audit log entry created with correct action/metadata.
 
-18) Users API: profile
+18) ✓ Users API: profile
    - GET /api/users/me.
    - Unit tests:
      - returns current user profile.
