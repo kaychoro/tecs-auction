@@ -9,7 +9,13 @@
 
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
+import {getApps, initializeApp} from "firebase-admin/app";
 import {createApiHandler} from "./api.js";
+import {
+  createPhaseAutoAdvanceDependencies,
+  runPhaseAutoAdvanceJob,
+} from "./phaseAutoAdvance.js";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -26,6 +32,22 @@ import {createApiHandler} from "./api.js";
 // this will be the maximum concurrent request count.
 setGlobalOptions({maxInstances: 10});
 export const api = onRequest(createApiHandler());
+export const autoAdvanceAuctionPhases = onSchedule(
+  "every 1 minutes",
+  async () => {
+    if (!getApps().length) {
+      initializeApp();
+    }
+
+    const result = await runPhaseAutoAdvanceJob(
+      createPhaseAutoAdvanceDependencies()
+    );
+    console.log(
+      `auto_advance_auction_phases scanned=${result.scanned} ` +
+      `advanced=${result.advanced}`
+    );
+  }
+);
 
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});

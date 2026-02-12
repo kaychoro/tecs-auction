@@ -127,7 +127,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - update notification settings with role checks.
 
-25) Auctions: phase auto-advance job
+25) ✓ Auctions: phase auto-advance job
    - Scheduled function for phase auto-advance with DB guard.
    - Unit tests:
      - auto-advance idempotency guard.
