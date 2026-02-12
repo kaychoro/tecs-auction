@@ -2,7 +2,7 @@
 
 This list is ordered by dependency and execution sequence. Each task includes required unit tests.
 
-1) Project scaffolding: config + constants
+1) ✓ Project scaffolding: config + constants
    - Add shared config for Firebase project, collections, and environment constants.
    - Unit tests:
      - config loads expected defaults for local/dev.
