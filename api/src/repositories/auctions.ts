@@ -34,6 +34,7 @@ export interface UpdateAuctionInput {
   name?: string;
   status?: AuctionStatus;
   timeZone?: string;
+  auctionCode?: string;
   notificationSettings?: AuctionNotificationSettings;
   paymentUrl?: string | null;
 }

@@ -111,7 +111,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - returns only joined auctions.
 
-22) Auctions API: code change + uniqueness
+22) ✓ Auctions API: code change + uniqueness
    - PATCH /api/auctions/{auctionId}/code (code change).
    - Enforce auction_code uniqueness document/guard.
    - Unit tests:

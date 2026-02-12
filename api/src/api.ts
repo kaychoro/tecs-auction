@@ -28,6 +28,10 @@ export interface ApiDependencies {
     auctionId: string,
     updates: {name?: string; timeZone?: string; paymentUrl?: string | null}
   ) => Promise<AuctionRecord | null>;
+  updateAuctionCode: (
+    auctionId: string,
+    auctionCode: string
+  ) => Promise<AuctionRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -59,6 +63,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
 
     if (req.method === "GET" && req.path === "/auctions/joined") {
       await handleGetJoinedAuctions(req, res, deps);
+      return;
+    }
+
+    const auctionCodeRoute = parseAuctionCodeRoute(req.path);
+    if (req.method === "PATCH" && auctionCodeRoute) {
+      await handlePatchAuctionCode(req, res, deps, auctionCodeRoute);
       return;
     }
 
@@ -210,6 +220,53 @@ async function handlePatchAuction(
     }
 
     const updated = await deps.updateAuction(auctionId, updates);
+    if (!updated) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles PATCH /auctions/:auctionId/code.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handlePatchAuctionCode(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for auction code changes"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const auctionCode = normalizeRequiredString(
+      body.auctionCode,
+      "auctionCode"
+    );
+    const updated = await deps.updateAuctionCode(auctionId, auctionCode);
     if (!updated) {
       const notFound = buildErrorResponse(
         404,
@@ -392,6 +449,19 @@ function parseAuctionId(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/code route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionCodeRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/code$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Validates and returns a required string field.
  * @param {unknown} value
  * @param {string} fieldName
@@ -469,6 +539,48 @@ function createDefaultDependencies(): ApiDependencies {
     createAuction: (input) => auctionsRepo.createAuction(input),
     updateAuction: (auctionId, updates) =>
       auctionsRepo.updateAuction(auctionId, updates),
+    updateAuctionCode: async (auctionId: string, auctionCode: string) => {
+      const db = getFirestore();
+      return db.runTransaction(async (tx) => {
+        const auctionsRef = db.collection("auctions");
+        const auctionRef = auctionsRef.doc(auctionId);
+        const auctionSnapshot = await tx.get(auctionRef);
+        if (!auctionSnapshot.exists) {
+          return null;
+        }
+
+        const existingAuction = auctionSnapshot.data() as AuctionRecord;
+        const oldCode = existingAuction.auctionCode;
+        const codeIndexRef = db.collection("auction_code_index")
+          .doc(auctionCode);
+        const codeIndexSnapshot = await tx.get(codeIndexRef);
+        const claimedBy = codeIndexSnapshot.data()?.auctionId as
+          string |
+          undefined;
+        if (claimedBy && claimedBy !== auctionId) {
+          throw buildErrorResponse(
+            409,
+            "auction_code_conflict",
+            "Auction code already in use"
+          );
+        }
+
+        const now = new Date().toISOString();
+        const updatedAuction: AuctionRecord = {
+          ...existingAuction,
+          auctionCode,
+          updatedAt: now,
+        };
+
+        tx.set(auctionRef, updatedAuction as never);
+        tx.set(codeIndexRef, {auctionId, updatedAt: now} as never);
+        if (oldCode && oldCode !== auctionCode) {
+          tx.delete(db.collection("auction_code_index").doc(oldCode));
+        }
+
+        return updatedAuction;
+      });
+    },
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
