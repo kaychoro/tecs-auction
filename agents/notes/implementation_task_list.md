@@ -78,7 +78,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - totals write and read.
 
-16) Firestore repo: audit logs
+16) ✓ Firestore repo: audit logs
    - Implement repositories for audit logs.
    - Unit tests:
      - audit log write and read.
