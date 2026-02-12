@@ -473,3 +473,5 @@ MigrationBackup/
 
 # Firebase CLI local diagnostics
 firepit-log.txt
+.firebase/
+api/lib/**/*.d.ts
