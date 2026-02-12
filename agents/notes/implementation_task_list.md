@@ -22,7 +22,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - role resolution (global role vs override).
 
-5) Membership guard
+5) ✓ Membership guard
    - Implement membership guard for auction-scoped endpoints.
    - Unit tests:
      - guard denies users without membership.
