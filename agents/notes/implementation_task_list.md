@@ -53,7 +53,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - create/update/get behaviors (happy path + not found).
 
-11) Firestore repo: images
+11) ✓ Firestore repo: images
    - Implement repositories for images.
    - Unit tests:
      - create/update/get behaviors (happy path + not found).
