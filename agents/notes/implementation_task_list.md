@@ -73,7 +73,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - notification write and read.
 
-15) Firestore repo: totals
+15) ✓ Firestore repo: totals
    - Implement repositories for totals.
    - Unit tests:
      - totals write and read.
