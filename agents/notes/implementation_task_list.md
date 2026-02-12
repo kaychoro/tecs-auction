@@ -155,7 +155,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - create/update validation and role checks.
 
-30) Items API: list + detail
+30) ✓ Items API: list + detail
    - GET /api/auctions/{auctionId}/items.
    - GET /api/items/{itemId}.
    - Unit tests:

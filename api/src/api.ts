@@ -76,6 +76,7 @@ export interface ApiDependencies {
     startingPrice: number;
   }) => Promise<ItemRecord>;
   getItemById: (itemId: string) => Promise<ItemRecord | null>;
+  listItemsByAuction: (auctionId: string) => Promise<ItemRecord[]>;
   updateItem: (
     itemId: string,
     updates: {
@@ -132,6 +133,10 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     }
 
     const auctionItemsRoute = parseAuctionItemsRoute(req.path);
+    if (req.method === "GET" && auctionItemsRoute) {
+      await handleGetAuctionItems(req, res, deps, auctionItemsRoute);
+      return;
+    }
     if (req.method === "POST" && auctionItemsRoute) {
       await handlePostAuctionItems(req, res, deps, auctionItemsRoute);
       return;
@@ -173,9 +178,15 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     }
 
     const itemId = parseItemId(req.path);
-    if (itemId && req.method === "PATCH") {
-      await handlePatchItem(req, res, deps, itemId);
-      return;
+    if (itemId) {
+      if (req.method === "PATCH") {
+        await handlePatchItem(req, res, deps, itemId);
+        return;
+      }
+      if (req.method === "GET") {
+        await handleGetItem(req, res, deps, itemId);
+        return;
+      }
     }
 
     const notFound = buildErrorResponse(404, "not_found", "Endpoint not found");
@@ -746,6 +757,46 @@ async function handlePostAuctionItems(
 }
 
 /**
+ * Handles GET /auctions/:auctionId/items.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionItems(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const items = await deps.listItemsByAuction(auctionId);
+    res.status(200).json({
+      data: items,
+      page: 1,
+      pageSize: items.length,
+      total: items.length,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles PATCH /items/:itemId.
  * @param {Request} req
  * @param {Response} res
@@ -847,6 +898,51 @@ async function handlePatchItem(
     }
 
     res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /items/:itemId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handleGetItem(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(item.auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this item"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    res.status(200).json(item);
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1363,6 +1459,13 @@ function createDefaultDependencies(): ApiDependencies {
       usersRepo.updateUser(userId, {lastAuctionId: auctionId}),
     createItem: (input) => itemsRepo.createItem(input),
     getItemById: (itemId) => itemsRepo.getItemById(itemId),
+    listItemsByAuction: async (auctionId) => {
+      const snapshot = await getFirestore()
+        .collection("items")
+        .where("auctionId", "==", auctionId)
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as ItemRecord);
+    },
     updateItem: (itemId, updates) => itemsRepo.updateItem(itemId, updates),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
