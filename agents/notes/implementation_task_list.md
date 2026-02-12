@@ -27,7 +27,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - guard denies users without membership.
 
-6) HTTP error mapping utility
+6) ✓ HTTP error mapping utility
    - Add HTTP error mapping utility for common failure cases.
    - Unit tests:
      - error mapping returns correct status and code.
