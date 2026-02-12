@@ -38,7 +38,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - create/update/get behaviors (happy path + not found).
 
-8) Firestore repo: memberships
+8) ✓ Firestore repo: memberships
    - Implement repositories for auction memberships.
    - Unit tests:
      - create/update/get behaviors (happy path + not found).
