@@ -12,7 +12,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - error helper formats (code/message/details).
 
-3) Auth guard (Firebase ID token)
+3) ✓ Auth guard (Firebase ID token)
    - Implement auth middleware to validate Firebase ID token.
    - Unit tests:
      - valid token passes, missing token returns 401.
