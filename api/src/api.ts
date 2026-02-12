@@ -29,6 +29,7 @@ export interface ApiDependencies {
     updates: {name?: string; timeZone?: string; paymentUrl?: string | null}
   ) => Promise<AuctionRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
+  listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
 }
 
@@ -53,6 +54,11 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
 
     if (req.method === "GET" && req.path === "/auctions") {
       await handleGetAuctions(req, res, deps);
+      return;
+    }
+
+    if (req.method === "GET" && req.path === "/auctions/joined") {
+      await handleGetJoinedAuctions(req, res, deps);
       return;
     }
 
@@ -234,6 +240,31 @@ async function handleGetAuctions(
   try {
     const actor = await getAuthenticatedActor(req, deps);
     const auctions = await deps.listAuctionsForActor(actor);
+    res.status(200).json({
+      data: auctions,
+      page: 1,
+      pageSize: auctions.length,
+      total: auctions.length,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/joined.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ */
+async function handleGetJoinedAuctions(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const auctions = await deps.listJoinedAuctionsForUser(actor.id);
     res.status(200).json({
       data: auctions,
       page: 1,
@@ -444,6 +475,26 @@ function createDefaultDependencies(): ApiDependencies {
         return snapshot.docs.map((doc) => doc.data() as AuctionRecord);
       }
       return [];
+    },
+    listJoinedAuctionsForUser: async (userId: string) => {
+      const membershipsSnapshot = await getFirestore()
+        .collection("auction_memberships")
+        .where("userId", "==", userId)
+        .where("status", "==", "active")
+        .get();
+
+      const auctions = await Promise.all(
+        membershipsSnapshot.docs.map(async (doc) => {
+          const membership = doc.data() as {auctionId?: string};
+          if (!membership.auctionId) {
+            return null;
+          }
+          return auctionsRepo.getAuctionById(membership.auctionId);
+        })
+      );
+
+      return auctions
+        .filter((auction): auction is AuctionRecord => Boolean(auction));
     },
     getAuctionById: (auctionId: string) =>
       auctionsRepo.getAuctionById(auctionId),

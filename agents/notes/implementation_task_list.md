@@ -106,7 +106,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - list scope by role.
      - detail access rules.
 
-21) Auctions API: joined list
+21) ✓ Auctions API: joined list
    - GET /api/auctions/joined.
    - Unit tests:
      - returns only joined auctions.
