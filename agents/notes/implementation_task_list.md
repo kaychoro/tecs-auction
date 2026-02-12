@@ -32,7 +32,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - error mapping returns correct status and code.
 
-7) Firestore repo: auctions
+7) ✓ Firestore repo: auctions
    - Implement repositories for auctions.
    - Add consistent timestamps (server time) and ID generation.
    - Unit tests:
