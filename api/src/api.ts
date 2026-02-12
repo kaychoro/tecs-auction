@@ -13,6 +13,8 @@ import {
   MembershipsRepository,
   type MembershipRecord,
 } from "./repositories/memberships.js";
+import {BidderNumberCountersRepository} from
+  "./repositories/bidderNumberCounters.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
 export interface ApiDependencies {
@@ -60,6 +62,7 @@ export interface ApiDependencies {
     status?: "active" | "revoked";
     bidderNumber?: number | null;
   }) => Promise<MembershipRecord>;
+  allocateBidderNumber: (auctionId: string) => Promise<number>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -571,7 +574,7 @@ async function handlePostAuctionJoin(
       userId: actor.id,
       roleOverride: null,
       status: "active",
-      bidderNumber: null,
+      bidderNumber: await deps.allocateBidderNumber(auctionId),
     });
 
     res.status(200).json({
@@ -887,6 +890,10 @@ function createDefaultDependencies(): ApiDependencies {
   const membershipsRepo = new MembershipsRepository(
     getFirestore().collection("auction_memberships") as never
   );
+  const bidderNumberRepo = new BidderNumberCountersRepository(
+    getFirestore() as never,
+    getFirestore().collection("auction_bidder_counters") as never
+  );
 
   return {
     authenticate: async (authorizationHeader: string | undefined) => {
@@ -958,6 +965,8 @@ function createDefaultDependencies(): ApiDependencies {
       membershipsRepo.getMembership(auctionId, userId),
     createMembership: (input) =>
       membershipsRepo.createMembership(input),
+    allocateBidderNumber: (auctionId) =>
+      bidderNumberRepo.allocateNextBidderNumber(auctionId),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

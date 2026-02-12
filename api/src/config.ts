@@ -4,6 +4,7 @@ export interface CollectionNames {
   auctions: string;
   users: string;
   memberships: string;
+  bidderCounters: string;
   items: string;
   bids: string;
   notifications: string;
@@ -21,6 +22,7 @@ export const DEFAULT_COLLECTIONS: CollectionNames = {
   auctions: "auctions",
   users: "users",
   memberships: "auction_memberships",
+  bidderCounters: "auction_bidder_counters",
   items: "items",
   bids: "bids",
   notifications: "notifications",

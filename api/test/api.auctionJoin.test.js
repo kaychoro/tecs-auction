@@ -72,12 +72,13 @@ function createBaseDeps(overrides = {}) {
       updatedAt: "2026-02-13T04:10:00.000Z",
     }],
     getMembership: async () => null,
+    allocateBidderNumber: async () => 1,
     createMembership: async () => ({
       auctionId: "auction-1",
       userId: "bidder-1",
       roleOverride: null,
       status: "active",
-      bidderNumber: null,
+      bidderNumber: 1,
       createdAt: "2026-02-13T04:15:00.000Z",
       updatedAt: "2026-02-13T04:15:00.000Z",
     }),
@@ -104,7 +105,7 @@ test("POST /auctions/:id/join creates membership with valid auction code", async
   assert.deepEqual(res.body, {
     auctionId: "auction-1",
     userId: "bidder-1",
-    bidderNumber: null,
+    bidderNumber: 1,
     roleOverride: null,
   });
 });

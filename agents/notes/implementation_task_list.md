@@ -139,7 +139,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - invalid code (404).
      - membership_exists conflict.
 
-27) Bidder number allocation
+27) ✓ Bidder number allocation
    - Implement per-auction bidder_number counter transaction.
    - Unit tests:
      - bidder_number uniqueness under concurrent requests.
