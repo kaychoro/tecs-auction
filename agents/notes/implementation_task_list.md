@@ -68,7 +68,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - derived view returns expected current high bid.
 
-14) Firestore repo: notifications
+14) ✓ Firestore repo: notifications
    - Implement repositories for notifications.
    - Unit tests:
      - notification write and read.
