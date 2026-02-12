@@ -144,7 +144,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - bidder_number uniqueness under concurrent requests.
 
-28) last_auction_id updates
+28) ✓ last_auction_id updates
    - Update user.last_auction_id on join and switch.
    - Unit tests:
      - last_auction_id update on join/switch.

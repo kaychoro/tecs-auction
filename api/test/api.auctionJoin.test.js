@@ -73,6 +73,16 @@ function createBaseDeps(overrides = {}) {
     }],
     getMembership: async () => null,
     allocateBidderNumber: async () => 1,
+    updateUserLastAuctionId: async () => ({
+      id: "bidder-1",
+      role: "Bidder",
+      email: "bidder@example.com",
+      phone: "555-0010",
+      displayName: "Bidder",
+      lastAuctionId: "auction-1",
+      createdAt: "2026-02-13T04:00:00.000Z",
+      updatedAt: "2026-02-13T04:15:00.000Z",
+    }),
     createMembership: async () => ({
       auctionId: "auction-1",
       userId: "bidder-1",
@@ -90,7 +100,24 @@ function createBaseDeps(overrides = {}) {
 }
 
 test("POST /auctions/:id/join creates membership with valid auction code", async () => {
-  const handler = createApiHandler(createBaseDeps());
+  let updatedUserId = null;
+  let updatedAuctionId = null;
+  const handler = createApiHandler(createBaseDeps({
+    updateUserLastAuctionId: async (userId, auctionId) => {
+      updatedUserId = userId;
+      updatedAuctionId = auctionId;
+      return {
+        id: userId,
+        role: "Bidder",
+        email: "bidder@example.com",
+        phone: "555-0010",
+        displayName: "Bidder",
+        lastAuctionId: auctionId,
+        createdAt: "2026-02-13T04:00:00.000Z",
+        updatedAt: "2026-02-13T04:15:00.000Z",
+      };
+    },
+  }));
   const req = createMockRequest(
     "POST",
     "/auctions/auction-1/join",
@@ -108,6 +135,8 @@ test("POST /auctions/:id/join creates membership with valid auction code", async
     bidderNumber: 1,
     roleOverride: null,
   });
+  assert.equal(updatedUserId, "bidder-1");
+  assert.equal(updatedAuctionId, "auction-1");
 });
 
 test("POST /auctions/:id/join returns 403 for AdminL1", async () => {

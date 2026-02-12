@@ -63,6 +63,10 @@ export interface ApiDependencies {
     bidderNumber?: number | null;
   }) => Promise<MembershipRecord>;
   allocateBidderNumber: (auctionId: string) => Promise<number>;
+  updateUserLastAuctionId: (
+    userId: string,
+    auctionId: string
+  ) => Promise<UserRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -100,6 +104,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     const auctionJoinRoute = parseAuctionJoinRoute(req.path);
     if (req.method === "POST" && auctionJoinRoute) {
       await handlePostAuctionJoin(req, res, deps, auctionJoinRoute);
+      return;
+    }
+
+    const auctionSwitchRoute = parseAuctionSwitchRoute(req.path);
+    if (req.method === "POST" && auctionSwitchRoute) {
+      await handlePostAuctionSwitch(req, res, deps, auctionSwitchRoute);
       return;
     }
 
@@ -576,6 +586,7 @@ async function handlePostAuctionJoin(
       status: "active",
       bidderNumber: await deps.allocateBidderNumber(auctionId),
     });
+    await deps.updateUserLastAuctionId(actor.id, auctionId);
 
     res.status(200).json({
       auctionId: membership.auctionId,
@@ -583,6 +594,49 @@ async function handlePostAuctionJoin(
       bidderNumber: membership.bidderNumber || null,
       roleOverride: membership.roleOverride || null,
     });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles POST /auctions/:auctionId/switch.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handlePostAuctionSwitch(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role === "AdminL1") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for auction switch"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const membership = await deps.getMembership(auctionId, actor.id);
+    if (!membership || membership.status !== "active") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "User does not have active membership for this auction"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    await deps.updateUserLastAuctionId(actor.id, auctionId);
+    res.status(200).json({auctionId});
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -710,6 +764,19 @@ function parseAuctionId(path: string): string | null {
  */
 function parseAuctionJoinRoute(path: string): string | null {
   const match = /^\/auctions\/([^/]+)\/join$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
+ * Parses auction ID from /auctions/:auctionId/switch route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionSwitchRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/switch$/.exec(path);
   if (!match) {
     return null;
   }
@@ -967,6 +1034,8 @@ function createDefaultDependencies(): ApiDependencies {
       membershipsRepo.createMembership(input),
     allocateBidderNumber: (auctionId) =>
       bidderNumberRepo.allocateNextBidderNumber(auctionId),
+    updateUserLastAuctionId: (userId, auctionId) =>
+      usersRepo.updateUser(userId, {lastAuctionId: auctionId}),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
