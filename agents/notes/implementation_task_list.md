@@ -93,7 +93,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - returns current user profile.
 
-19) Auctions API: create + update
+19) ✓ Auctions API: create + update
    - POST /api/auctions (create).
    - PATCH /api/auctions/{auctionId} (update fields).
    - Unit tests:
