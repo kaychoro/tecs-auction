@@ -40,6 +40,10 @@ export interface ApiDependencies {
       phaseSchedule?: Record<string, unknown> | null;
     }
   ) => Promise<AuctionRecord | null>;
+  updateAuctionNotifications: (
+    auctionId: string,
+    updates: {inAppEnabled: boolean}
+  ) => Promise<AuctionRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -83,6 +87,17 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     const auctionPhaseRoute = parseAuctionPhaseRoute(req.path);
     if (req.method === "PATCH" && auctionPhaseRoute) {
       await handlePatchAuctionPhase(req, res, deps, auctionPhaseRoute);
+      return;
+    }
+
+    const auctionNotificationsRoute = parseAuctionNotificationsRoute(req.path);
+    if (req.method === "PATCH" && auctionNotificationsRoute) {
+      await handlePatchAuctionNotifications(
+        req,
+        res,
+        deps,
+        auctionNotificationsRoute
+      );
       return;
     }
 
@@ -358,6 +373,56 @@ async function handlePatchAuctionPhase(
 }
 
 /**
+ * Handles PATCH /auctions/:auctionId/notifications.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handlePatchAuctionNotifications(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for auction notification changes"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const inAppEnabled = normalizeRequiredBoolean(
+      body.inAppEnabled,
+      "inAppEnabled"
+    );
+
+    const updated = await deps.updateAuctionNotifications(auctionId, {
+      inAppEnabled,
+    });
+    if (!updated) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions.
  * @param {Request} req
  * @param {Response} res
@@ -549,6 +614,19 @@ function parseAuctionPhaseRoute(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/notifications route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionNotificationsRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/notifications$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Validates and returns a required string field.
  * @param {unknown} value
  * @param {string} fieldName
@@ -590,6 +668,23 @@ function normalizeRequiredAuctionStatus(value: unknown): AuctionStatus {
     );
   }
   return normalized as AuctionStatus;
+}
+
+/**
+ * Validates and returns a required boolean field.
+ * @param {unknown} value
+ * @param {string} fieldName
+ * @return {boolean}
+ */
+function normalizeRequiredBoolean(value: unknown, fieldName: string): boolean {
+  if (typeof value !== "boolean") {
+    throw buildErrorResponse(
+      400,
+      "validation_error",
+      `Field '${fieldName}' must be a boolean`
+    );
+  }
+  return value;
 }
 
 /**
@@ -719,6 +814,10 @@ function createDefaultDependencies(): ApiDependencies {
     },
     updateAuctionPhase: (auctionId, updates) =>
       auctionsRepo.updateAuction(auctionId, updates),
+    updateAuctionNotifications: (auctionId, updates) =>
+      auctionsRepo.updateAuction(auctionId, {
+        notificationSettings: {inAppEnabled: updates.inAppEnabled},
+      }),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

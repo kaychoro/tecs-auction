@@ -122,7 +122,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - phase override permissions.
 
-24) Auctions API: notification settings
+24) ✓ Auctions API: notification settings
    - PATCH /api/auctions/{auctionId}/notifications.
    - Unit tests:
      - update notification settings with role checks.
