@@ -117,7 +117,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - auction_code uniqueness guard and conflict response.
 
-23) Auctions API: phase override
+23) ✓ Auctions API: phase override
    - PATCH /api/auctions/{auctionId}/phase (manual override).
    - Unit tests:
      - phase override permissions.

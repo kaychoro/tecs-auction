@@ -13,6 +13,7 @@ export interface AuctionRecord {
   status: AuctionStatus;
   timeZone: string;
   auctionCode: string;
+  phaseSchedule?: Record<string, unknown> | null;
   notificationSettings: AuctionNotificationSettings;
   paymentUrl?: string | null;
   createdBy: string;
@@ -35,6 +36,7 @@ export interface UpdateAuctionInput {
   status?: AuctionStatus;
   timeZone?: string;
   auctionCode?: string;
+  phaseSchedule?: Record<string, unknown> | null;
   notificationSettings?: AuctionNotificationSettings;
   paymentUrl?: string | null;
 }

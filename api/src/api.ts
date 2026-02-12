@@ -7,6 +7,7 @@ import {buildErrorResponse} from "./errors.js";
 import {
   AuctionsRepository,
   type AuctionRecord,
+  type AuctionStatus,
 } from "./repositories/auctions.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
@@ -31,6 +32,13 @@ export interface ApiDependencies {
   updateAuctionCode: (
     auctionId: string,
     auctionCode: string
+  ) => Promise<AuctionRecord | null>;
+  updateAuctionPhase: (
+    auctionId: string,
+    updates: {
+      status: AuctionStatus;
+      phaseSchedule?: Record<string, unknown> | null;
+    }
   ) => Promise<AuctionRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
@@ -69,6 +77,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     const auctionCodeRoute = parseAuctionCodeRoute(req.path);
     if (req.method === "PATCH" && auctionCodeRoute) {
       await handlePatchAuctionCode(req, res, deps, auctionCodeRoute);
+      return;
+    }
+
+    const auctionPhaseRoute = parseAuctionPhaseRoute(req.path);
+    if (req.method === "PATCH" && auctionPhaseRoute) {
+      await handlePatchAuctionPhase(req, res, deps, auctionPhaseRoute);
       return;
     }
 
@@ -284,6 +298,66 @@ async function handlePatchAuctionCode(
 }
 
 /**
+ * Handles PATCH /auctions/:auctionId/phase.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handlePatchAuctionPhase(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for auction phase overrides"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const status = normalizeRequiredAuctionStatus(body.status);
+    const hasPhaseSchedule = Object.prototype.hasOwnProperty
+      .call(body, "phaseSchedule");
+    const phaseSchedule = normalizeNullableObject(body.phaseSchedule);
+    if (hasPhaseSchedule && typeof phaseSchedule === "undefined") {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "Field 'phaseSchedule' must be an object or null"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+
+    const updated = await deps.updateAuctionPhase(auctionId, {
+      status,
+      ...(hasPhaseSchedule ? {phaseSchedule} : {}),
+    });
+    if (!updated) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions.
  * @param {Request} req
  * @param {Response} res
@@ -462,6 +536,19 @@ function parseAuctionCodeRoute(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/phase route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionPhaseRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/phase$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Validates and returns a required string field.
  * @param {unknown} value
  * @param {string} fieldName
@@ -477,6 +564,32 @@ function normalizeRequiredString(value: unknown, fieldName: string): string {
     );
   }
   return normalized;
+}
+
+/**
+ * Validates and returns a required AuctionStatus field.
+ * @param {unknown} value
+ * @return {AuctionStatus}
+ */
+function normalizeRequiredAuctionStatus(value: unknown): AuctionStatus {
+  const normalized = normalizeRequiredString(value, "status");
+  const statuses: AuctionStatus[] = [
+    "Setup",
+    "Ready",
+    "Open",
+    "Pending",
+    "Complete",
+    "Closed",
+  ];
+  if (!statuses.includes(normalized as AuctionStatus)) {
+    throw buildErrorResponse(
+      400,
+      "validation_error",
+      "Field 'status' must be one of Setup, Ready, Open, Pending, " +
+      "Complete, Closed"
+    );
+  }
+  return normalized as AuctionStatus;
 }
 
 /**
@@ -510,6 +623,29 @@ function normalizeNullableString(
   }
 
   return normalizeOptionalString(value);
+}
+
+/**
+ * Normalizes a nullable object field.
+ * @param {unknown} value
+ * @return {Record<string, unknown>|null|undefined}
+ */
+function normalizeNullableObject(
+  value: unknown
+): Record<string, unknown> | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === "undefined") {
+    return undefined;
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return undefined;
 }
 
 /**
@@ -581,6 +717,8 @@ function createDefaultDependencies(): ApiDependencies {
         return updatedAuction;
       });
     },
+    updateAuctionPhase: (auctionId, updates) =>
+      auctionsRepo.updateAuction(auctionId, updates),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
