@@ -7,7 +7,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - config loads expected defaults for local/dev.
 
-2) Shared error helper
+2) ✓ Shared error helper
    - Implement error builder for standard payloads.
    - Unit tests:
      - error helper formats (code/message/details).
