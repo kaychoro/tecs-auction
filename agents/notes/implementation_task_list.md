@@ -43,7 +43,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - create/update/get behaviors (happy path + not found).
 
-9) Firestore repo: users
+9) ✓ Firestore repo: users
    - Implement repositories for users.
    - Unit tests:
      - get/update behaviors (happy path + not found).
