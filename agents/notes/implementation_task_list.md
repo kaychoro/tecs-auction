@@ -149,7 +149,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - last_auction_id update on join/switch.
 
-29) Items API: create + update
+29) ✓ Items API: create + update
    - POST /api/auctions/{auctionId}/items.
    - PATCH /api/items/{itemId}.
    - Unit tests:

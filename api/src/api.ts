@@ -15,6 +15,7 @@ import {
 } from "./repositories/memberships.js";
 import {BidderNumberCountersRepository} from
   "./repositories/bidderNumberCounters.js";
+import {ItemsRepository, type ItemRecord} from "./repositories/items.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
 export interface ApiDependencies {
@@ -67,6 +68,23 @@ export interface ApiDependencies {
     userId: string,
     auctionId: string
   ) => Promise<UserRecord | null>;
+  createItem: (input: {
+    auctionId: string;
+    name: string;
+    description?: string | null;
+    type: "silent" | "live";
+    startingPrice: number;
+  }) => Promise<ItemRecord>;
+  getItemById: (itemId: string) => Promise<ItemRecord | null>;
+  updateItem: (
+    itemId: string,
+    updates: {
+      name?: string;
+      description?: string | null;
+      type?: "silent" | "live";
+      startingPrice?: number;
+    }
+  ) => Promise<ItemRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -113,6 +131,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       return;
     }
 
+    const auctionItemsRoute = parseAuctionItemsRoute(req.path);
+    if (req.method === "POST" && auctionItemsRoute) {
+      await handlePostAuctionItems(req, res, deps, auctionItemsRoute);
+      return;
+    }
+
     const auctionCodeRoute = parseAuctionCodeRoute(req.path);
     if (req.method === "PATCH" && auctionCodeRoute) {
       await handlePatchAuctionCode(req, res, deps, auctionCodeRoute);
@@ -146,6 +170,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
         await handleGetAuctionById(req, res, deps, auctionId);
         return;
       }
+    }
+
+    const itemId = parseItemId(req.path);
+    if (itemId && req.method === "PATCH") {
+      await handlePatchItem(req, res, deps, itemId);
+      return;
     }
 
     const notFound = buildErrorResponse(404, "not_found", "Endpoint not found");
@@ -643,6 +673,186 @@ async function handlePostAuctionSwitch(
 }
 
 /**
+ * Handles POST /auctions/:auctionId/items.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handlePostAuctionItems(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for item management"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const visibleAuctions = await deps.listAuctionsForActor(actor);
+      const canAccessAuction = visibleAuctions
+        .some((auction) => auction.id === auctionId);
+      if (!canAccessAuction) {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const auction = await deps.getAuctionById(auctionId);
+    if (!auction) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const name = normalizeRequiredString(body.name, "name");
+    const type = normalizeRequiredItemType(body.type);
+    const startingPrice = normalizeRequiredMoneyNumber(
+      body.startingPrice,
+      "startingPrice"
+    );
+    const description = normalizeNullableString(body.description);
+
+    const item = await deps.createItem({
+      auctionId,
+      name,
+      description,
+      type,
+      startingPrice,
+    });
+    res.status(200).json(item);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles PATCH /items/:itemId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handlePatchItem(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for item management"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const visibleAuctions = await deps.listAuctionsForActor(actor);
+      const canAccessAuction = visibleAuctions
+        .some((auction) => auction.id === item.auctionId);
+      if (!canAccessAuction) {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const updates = {
+      name: normalizeOptionalString(body.name),
+      description: normalizeNullableString(body.description),
+      type: normalizeOptionalItemType(body.type),
+      startingPrice: normalizeOptionalMoneyNumber(body.startingPrice),
+    };
+    const hasDescription = Object.prototype.hasOwnProperty
+      .call(body, "description");
+    if (!updates.name && !updates.type &&
+      typeof updates.startingPrice === "undefined" &&
+      !hasDescription) {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "At least one updatable field is required"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+
+    if (hasDescription && typeof updates.description === "undefined") {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "Field 'description' must be a string or null"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+
+    const updated = await deps.updateItem(itemId, {
+      ...(updates.name ? {name: updates.name} : {}),
+      ...(hasDescription ? {description: updates.description || null} : {}),
+      ...(updates.type ? {type: updates.type} : {}),
+      ...(typeof updates.startingPrice !== "undefined" ?
+        {startingPrice: updates.startingPrice} :
+        {}),
+    });
+
+    if (!updated) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -745,6 +955,15 @@ function canManageAuctions(role: AuthenticatedActor["role"]): boolean {
 }
 
 /**
+ * Returns true if the role can create/update items.
+ * @param {string} role
+ * @return {boolean}
+ */
+function canManageItems(role: AuthenticatedActor["role"]): boolean {
+  return role === "AdminL1" || role === "AdminL2";
+}
+
+/**
  * Parses auction ID from /auctions/:auctionId route paths.
  * @param {string} path
  * @return {string|null}
@@ -784,6 +1003,19 @@ function parseAuctionSwitchRoute(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/items route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionItemsRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/items$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Parses auction ID from /auctions/:auctionId/code route paths.
  * @param {string} path
  * @return {string|null}
@@ -816,6 +1048,19 @@ function parseAuctionPhaseRoute(path: string): string | null {
  */
 function parseAuctionNotificationsRoute(path: string): string | null {
   const match = /^\/auctions\/([^/]+)\/notifications$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
+ * Parses item ID from /items/:itemId route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseItemId(path: string): string | null {
+  const match = /^\/items\/([^/]+)$/.exec(path);
   if (!match) {
     return null;
   }
@@ -864,6 +1109,83 @@ function normalizeRequiredAuctionStatus(value: unknown): AuctionStatus {
     );
   }
   return normalized as AuctionStatus;
+}
+
+/**
+ * Validates and returns a required item type.
+ * @param {unknown} value
+ * @return {"silent"|"live"}
+ */
+function normalizeRequiredItemType(value: unknown): "silent" | "live" {
+  const normalized = normalizeRequiredString(value, "type");
+  if (normalized !== "silent" && normalized !== "live") {
+    throw buildErrorResponse(
+      400,
+      "validation_error",
+      "Field 'type' must be 'silent' or 'live'"
+    );
+  }
+  return normalized;
+}
+
+/**
+ * Normalizes optional item type.
+ * @param {unknown} value
+ * @return {"silent"|"live"|undefined}
+ */
+function normalizeOptionalItemType(
+  value: unknown
+): "silent" | "live" | undefined {
+  if (typeof value === "undefined") {
+    return undefined;
+  }
+  if (value === "silent" || value === "live") {
+    return value;
+  }
+  throw buildErrorResponse(
+    400,
+    "validation_error",
+    "Field 'type' must be 'silent' or 'live'"
+  );
+}
+
+/**
+ * Validates and returns a required non-negative numeric field.
+ * @param {unknown} value
+ * @param {string} fieldName
+ * @return {number}
+ */
+function normalizeRequiredMoneyNumber(
+  value: unknown,
+  fieldName: string
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw buildErrorResponse(
+      400,
+      "validation_error",
+      `Field '${fieldName}' must be a non-negative number`
+    );
+  }
+  return value;
+}
+
+/**
+ * Normalizes an optional non-negative number.
+ * @param {unknown} value
+ * @return {number|undefined}
+ */
+function normalizeOptionalMoneyNumber(value: unknown): number | undefined {
+  if (typeof value === "undefined") {
+    return undefined;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw buildErrorResponse(
+      400,
+      "validation_error",
+      "Field 'startingPrice' must be a non-negative number"
+    );
+  }
+  return value;
 }
 
 /**
@@ -957,6 +1279,9 @@ function createDefaultDependencies(): ApiDependencies {
   const membershipsRepo = new MembershipsRepository(
     getFirestore().collection("auction_memberships") as never
   );
+  const itemsRepo = new ItemsRepository(
+    getFirestore().collection("items") as never
+  );
   const bidderNumberRepo = new BidderNumberCountersRepository(
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
@@ -1036,6 +1361,9 @@ function createDefaultDependencies(): ApiDependencies {
       bidderNumberRepo.allocateNextBidderNumber(auctionId),
     updateUserLastAuctionId: (userId, auctionId) =>
       usersRepo.updateUser(userId, {lastAuctionId: auctionId}),
+    createItem: (input) => itemsRepo.createItem(input),
+    getItemById: (itemId) => itemsRepo.getItemById(itemId),
+    updateItem: (itemId, updates) => itemsRepo.updateItem(itemId, updates),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
