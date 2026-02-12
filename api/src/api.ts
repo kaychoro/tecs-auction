@@ -9,6 +9,10 @@ import {
   type AuctionRecord,
   type AuctionStatus,
 } from "./repositories/auctions.js";
+import {
+  MembershipsRepository,
+  type MembershipRecord,
+} from "./repositories/memberships.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
 export interface ApiDependencies {
@@ -44,6 +48,18 @@ export interface ApiDependencies {
     auctionId: string,
     updates: {inAppEnabled: boolean}
   ) => Promise<AuctionRecord | null>;
+  findAuctionsByCode: (auctionCode: string) => Promise<AuctionRecord[]>;
+  getMembership: (
+    auctionId: string,
+    userId: string
+  ) => Promise<MembershipRecord | null>;
+  createMembership: (input: {
+    auctionId: string;
+    userId: string;
+    roleOverride?: "Bidder" | "AdminL3" | "AdminL2" | "AdminL1" | null;
+    status?: "active" | "revoked";
+    bidderNumber?: number | null;
+  }) => Promise<MembershipRecord>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -75,6 +91,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
 
     if (req.method === "GET" && req.path === "/auctions/joined") {
       await handleGetJoinedAuctions(req, res, deps);
+      return;
+    }
+
+    const auctionJoinRoute = parseAuctionJoinRoute(req.path);
+    if (req.method === "POST" && auctionJoinRoute) {
+      await handlePostAuctionJoin(req, res, deps, auctionJoinRoute);
       return;
     }
 
@@ -473,6 +495,97 @@ async function handleGetJoinedAuctions(
 }
 
 /**
+ * Handles POST /auctions/:auctionId/join.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handlePostAuctionJoin(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role === "AdminL1") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for auction join"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const auctionCode = normalizeRequiredString(
+      body.auctionCode,
+      "auctionCode"
+    );
+    const matchedAuctions = await deps.findAuctionsByCode(auctionCode);
+    if (matchedAuctions.length === 0) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+    if (matchedAuctions.length > 1) {
+      const conflict = buildErrorResponse(
+        409,
+        "auction_code_conflict",
+        "Auction code is assigned to multiple auctions"
+      );
+      res.status(conflict.status).json(conflict.body);
+      return;
+    }
+
+    const matchedAuction = matchedAuctions[0];
+    if (matchedAuction.id !== auctionId) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    const existingMembership = await deps.getMembership(auctionId, actor.id);
+    if (existingMembership) {
+      const conflict = buildErrorResponse(
+        409,
+        "membership_exists",
+        "User is already a member of this auction"
+      );
+      res.status(conflict.status).json(conflict.body);
+      return;
+    }
+
+    const membership = await deps.createMembership({
+      auctionId,
+      userId: actor.id,
+      roleOverride: null,
+      status: "active",
+      bidderNumber: null,
+    });
+
+    res.status(200).json({
+      auctionId: membership.auctionId,
+      userId: membership.userId,
+      bidderNumber: membership.bidderNumber || null,
+      roleOverride: membership.roleOverride || null,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -581,6 +694,19 @@ function canManageAuctions(role: AuthenticatedActor["role"]): boolean {
  */
 function parseAuctionId(path: string): string | null {
   const match = /^\/auctions\/([^/]+)$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
+ * Parses auction ID from /auctions/:auctionId/join route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionJoinRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/join$/.exec(path);
   if (!match) {
     return null;
   }
@@ -758,6 +884,9 @@ function createDefaultDependencies(): ApiDependencies {
   const auctionsRepo = new AuctionsRepository(
     getFirestore().collection("auctions") as never
   );
+  const membershipsRepo = new MembershipsRepository(
+    getFirestore().collection("auction_memberships") as never
+  );
 
   return {
     authenticate: async (authorizationHeader: string | undefined) => {
@@ -818,6 +947,17 @@ function createDefaultDependencies(): ApiDependencies {
       auctionsRepo.updateAuction(auctionId, {
         notificationSettings: {inAppEnabled: updates.inAppEnabled},
       }),
+    findAuctionsByCode: async (auctionCode: string) => {
+      const snapshot = await getFirestore()
+        .collection("auctions")
+        .where("auctionCode", "==", auctionCode)
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as AuctionRecord);
+    },
+    getMembership: (auctionId, userId) =>
+      membershipsRepo.getMembership(auctionId, userId),
+    createMembership: (input) =>
+      membershipsRepo.createMembership(input),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

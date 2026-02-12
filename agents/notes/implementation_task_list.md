@@ -132,7 +132,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - auto-advance idempotency guard.
 
-26) Auction join API
+26) ✓ Auction join API
    - POST /api/auctions/{auctionId}/join (auction code validation).
    - Unit tests:
      - join success.
