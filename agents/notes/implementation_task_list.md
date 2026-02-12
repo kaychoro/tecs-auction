@@ -58,7 +58,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - create/update/get behaviors (happy path + not found).
 
-12) Firestore repo: bids
+12) ✓ Firestore repo: bids
    - Implement bid write transactions.
    - Unit tests:
      - bid write creates bid record.
