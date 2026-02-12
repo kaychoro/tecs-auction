@@ -17,7 +17,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - valid token passes, missing token returns 401.
 
-4) Role resolution logic
+4) ✓ Role resolution logic
    - Implement effective role (global role + role_override down-scope).
    - Unit tests:
      - role resolution (global role vs override).
