@@ -708,6 +708,80 @@ class AdminNotificationSettingsScreen extends StatefulWidget {
       _AdminNotificationSettingsScreenState();
 }
 
+class AdminMembershipAssignmentScreen extends StatefulWidget {
+  const AdminMembershipAssignmentScreen({
+    super.key,
+    required this.adminUsers,
+  });
+
+  final List<String> adminUsers;
+
+  @override
+  State<AdminMembershipAssignmentScreen> createState() =>
+      _AdminMembershipAssignmentScreenState();
+}
+
+class _AdminMembershipAssignmentScreenState
+    extends State<AdminMembershipAssignmentScreen> {
+  String? _selectedUser;
+  String _selectedRole = 'AdminL3';
+  String? _lastAssignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Membership Assignment')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              key: const Key('membership_user_dropdown'),
+              initialValue: _selectedUser,
+              decoration: const InputDecoration(labelText: 'Admin user'),
+              items: widget.adminUsers
+                  .map((user) => DropdownMenuItem(value: user, child: Text(user)))
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedUser = value),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              key: const Key('membership_role_dropdown'),
+              initialValue: _selectedRole,
+              decoration: const InputDecoration(labelText: 'Role override'),
+              items: const [
+                DropdownMenuItem(value: 'AdminL3', child: Text('AdminL3')),
+                DropdownMenuItem(value: 'AdminL2', child: Text('AdminL2')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedRole = value);
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              key: const Key('membership_assign_button'),
+              onPressed: _selectedUser == null
+                  ? null
+                  : () {
+                      setState(() {
+                        _lastAssignment = 'Assigned $_selectedRole to $_selectedUser';
+                      });
+                    },
+              child: const Text('Assign'),
+            ),
+            const SizedBox(height: 12),
+            if (_lastAssignment != null)
+              Text(_lastAssignment!, key: const Key('membership_result')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminNotificationSettingsScreenState
     extends State<AdminNotificationSettingsScreen> {
   late bool _inAppEnabled;

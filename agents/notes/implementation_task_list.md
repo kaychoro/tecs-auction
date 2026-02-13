@@ -345,7 +345,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for toggle behavior and save.
 
-66) Frontend admin: membership assignment
+66) ✓ Frontend admin: membership assignment
    - Implement membership assignment for L2/L3 admins.
    - Unit tests:
      - widget tests for role assignment flow.

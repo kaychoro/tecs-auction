@@ -325,6 +325,37 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('membership assignment flow assigns selected role', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminMembershipAssignmentScreen(
+          adminUsers: ['admin-l2@example.com', 'admin-l3@example.com'],
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('membership_user_dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('admin-l3@example.com').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('membership_role_dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('AdminL2').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('membership_assign_button')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('membership_result')), findsOneWidget);
+    expect(
+      find.text('Assigned AdminL2 to admin-l3@example.com'),
+      findsOneWidget,
+    );
+  });
 }
 
 void _noop() {}
