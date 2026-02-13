@@ -290,7 +290,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for verification state and join flow validation.
 
-55) Frontend bidder: auction switcher
+55) ✓ Frontend bidder: auction switcher
    - Implement joined auctions switcher UI.
    - Unit tests:
      - widget tests for switching and empty state.

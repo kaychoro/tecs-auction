@@ -57,4 +57,39 @@ void main() {
 
     expect(find.text('Enter a 6-character code'), findsOneWidget);
   });
+
+  testWidgets('auction switcher updates active auction label', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: JoinAuctionScreen(
+          joinedAuctions: [
+            JoinedAuctionOption(id: 'a1', name: 'Spring Fundraiser'),
+            JoinedAuctionOption(id: 'a2', name: 'Holiday Gala'),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.text('Active auction: Spring Fundraiser'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('joined_chip_a2')));
+    await tester.pump();
+
+    expect(find.text('Active auction: Holiday Gala'), findsOneWidget);
+  });
+
+  testWidgets('auction switcher shows empty state when no joined auctions', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: JoinAuctionScreen(joinedAuctions: []),
+      ),
+    );
+
+    expect(find.byKey(const Key('joined_empty_state')), findsOneWidget);
+    expect(find.text('No joined auctions yet'), findsOneWidget);
+  });
 }

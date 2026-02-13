@@ -6,6 +6,16 @@ void main() {
 
 enum BidderStage { registration, verification, join }
 
+class JoinedAuctionOption {
+  const JoinedAuctionOption({
+    required this.id,
+    required this.name,
+  });
+
+  final String id;
+  final String name;
+}
+
 class AuctionApp extends StatefulWidget {
   const AuctionApp({super.key});
 
@@ -33,7 +43,12 @@ class _AuctionAppState extends State<AuctionApp> {
       case BidderStage.verification:
         screen = VerificationScreen(onContinue: _goToJoin);
       case BidderStage.join:
-        screen = const JoinAuctionScreen();
+        screen = const JoinAuctionScreen(
+          joinedAuctions: [
+            JoinedAuctionOption(id: 'a1', name: 'Spring Fundraiser'),
+            JoinedAuctionOption(id: 'a2', name: 'Holiday Gala'),
+          ],
+        );
     }
 
     return MaterialApp(
@@ -224,7 +239,12 @@ class VerificationScreen extends StatelessWidget {
 }
 
 class JoinAuctionScreen extends StatefulWidget {
-  const JoinAuctionScreen({super.key});
+  const JoinAuctionScreen({
+    super.key,
+    required this.joinedAuctions,
+  });
+
+  final List<JoinedAuctionOption> joinedAuctions;
 
   @override
   State<JoinAuctionScreen> createState() => _JoinAuctionScreenState();
@@ -233,11 +253,20 @@ class JoinAuctionScreen extends StatefulWidget {
 class _JoinAuctionScreenState extends State<JoinAuctionScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
+  String? _selectedAuctionId;
 
   @override
   void dispose() {
     _codeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.joinedAuctions.isNotEmpty) {
+      _selectedAuctionId = widget.joinedAuctions.first.id;
+    }
   }
 
   String? _validateCode(String? value) {
@@ -262,6 +291,14 @@ class _JoinAuctionScreenState extends State<JoinAuctionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    JoinedAuctionOption? selectedAuction;
+    for (final auction in widget.joinedAuctions) {
+      if (auction.id == _selectedAuctionId) {
+        selectedAuction = auction;
+        break;
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Join Auction')),
       body: Center(
@@ -275,6 +312,38 @@ class _JoinAuctionScreenState extends State<JoinAuctionScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    'Joined auctions',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  if (widget.joinedAuctions.isEmpty)
+                    const Text(
+                      'No joined auctions yet',
+                      key: Key('joined_empty_state'),
+                    )
+                  else ...[
+                    Wrap(
+                      spacing: 8,
+                      children: widget.joinedAuctions.map((auction) {
+                        final isSelected = auction.id == _selectedAuctionId;
+                        return ChoiceChip(
+                          key: Key('joined_chip_${auction.id}'),
+                          label: Text(auction.name),
+                          selected: isSelected,
+                          onSelected: (_) {
+                            setState(() => _selectedAuctionId = auction.id);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Active auction: ${selectedAuction?.name ?? '-'}',
+                      key: const Key('joined_selected_label'),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
                   TextFormField(
                     key: const Key('join_code'),
                     controller: _codeController,
