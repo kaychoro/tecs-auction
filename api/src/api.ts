@@ -19,6 +19,10 @@ import {ImagesRepository, type ImageRecord} from "./repositories/images.js";
 import {ItemsRepository, type ItemRecord} from "./repositories/items.js";
 import {BidsRepository, type BidRecord} from "./repositories/bids.js";
 import {BidViewsRepository} from "./repositories/bidViews.js";
+import {
+  AuditLogsRepository,
+  type AuditLogRecord,
+} from "./repositories/auditLogs.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
 export interface ApiDependencies {
@@ -110,6 +114,14 @@ export interface ApiDependencies {
     amount: number;
   }) => Promise<BidRecord>;
   getCurrentHighBid: (itemId: string) => Promise<BidRecord | null>;
+  createAuditLog: (input: {
+    auctionId: string;
+    actorUserId: string;
+    action: string;
+    targetType: string;
+    targetId: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<AuditLogRecord>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -1224,6 +1236,17 @@ async function handlePostItemBids(
       res.status(outbid.status).json(outbid.body);
       return;
     }
+    await deps.createAuditLog({
+      auctionId: item.auctionId,
+      actorUserId: actor.id,
+      action: "bid_placed",
+      targetType: "item",
+      targetId: item.id,
+      metadata: {
+        bidId: bid.id,
+        amount: bid.amount,
+      },
+    });
 
     res.status(200).json({
       bid,
@@ -1710,6 +1733,9 @@ function createDefaultDependencies(): ApiDependencies {
       return snapshot.docs.map((doc) => doc.data() as BidRecord);
     },
   });
+  const auditLogsRepo = new AuditLogsRepository(
+    getFirestore().collection("audit_logs") as never
+  );
   const bidderNumberRepo = new BidderNumberCountersRepository(
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
@@ -1803,6 +1829,7 @@ function createDefaultDependencies(): ApiDependencies {
     createImage: (input) => imagesRepo.createImage(input),
     createBid: (input) => bidsRepo.createBid(input),
     getCurrentHighBid: (itemId) => bidViewsRepo.getCurrentHighBid(itemId),
+    createAuditLog: (input) => auditLogsRepo.createAuditLog(input),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

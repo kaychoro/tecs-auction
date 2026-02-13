@@ -32,8 +32,10 @@ function createMockResponse() {
   };
 }
 
-function createBaseDeps(overrides = {}) {
-  return {
+test("POST /items/:id/bids writes audit log entry on success", async () => {
+  let auditInput = null;
+  let highBidReads = 0;
+  const handler = createApiHandler({
     authenticate: async () => ({uid: "bidder-1"}),
     getUserById: async () => ({
       id: "bidder-1",
@@ -96,22 +98,36 @@ function createBaseDeps(overrides = {}) {
     createImage: async () => {
       throw new Error("not used");
     },
-    createBid: async (input) => ({
+    createBid: async () => ({
       id: "bid-1",
-      ...input,
+      auctionId: "auction-1",
+      itemId: "item-1",
+      bidderId: "bidder-1",
+      amount: 110,
       placedAt: "2026-02-20T18:00:01.000Z",
     }),
-    getCurrentHighBid: async () => null,
-    createAuditLog: async () => ({
-      id: "audit-1",
-      auctionId: "auction-1",
-      actorUserId: "bidder-1",
-      action: "bid_placed",
-      targetType: "item",
-      targetId: "item-1",
-      metadata: {},
-      createdAt: "2026-02-20T18:00:01.000Z",
-    }),
+    getCurrentHighBid: async () => {
+      highBidReads += 1;
+      if (highBidReads === 1) {
+        return null;
+      }
+      return {
+        id: "bid-1",
+        auctionId: "auction-1",
+        itemId: "item-1",
+        bidderId: "bidder-1",
+        amount: 110,
+        placedAt: "2026-02-20T18:00:01.000Z",
+      };
+    },
+    createAuditLog: async (input) => {
+      auditInput = input;
+      return {
+        id: "audit-1",
+        ...input,
+        createdAt: "2026-02-20T18:00:01.000Z",
+      };
+    },
     listAuctionsForActor: async () => [],
     listJoinedAuctionsForUser: async () => [],
     getAuctionById: async () => ({
@@ -126,53 +142,8 @@ function createBaseDeps(overrides = {}) {
       createdAt: "2026-02-13T04:00:00.000Z",
       updatedAt: "2026-02-13T04:00:00.000Z",
     }),
-    ...overrides,
-  };
-}
+  });
 
-test("POST /items/:id/bids returns bid_too_low when amount is not above high bid", async () => {
-  const handler = createApiHandler(createBaseDeps({
-    getCurrentHighBid: async () => ({
-      id: "bid-high",
-      auctionId: "auction-1",
-      itemId: "item-1",
-      bidderId: "bidder-2",
-      amount: 100,
-      placedAt: "2026-02-20T18:00:00.000Z",
-    }),
-  }));
-  const req = createMockRequest(
-    "POST",
-    "/items/item-1/bids",
-    "Bearer token",
-    {amount: 100}
-  );
-  const res = createMockResponse();
-
-  await handler(req, res);
-
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error.code, "bid_too_low");
-});
-
-test("POST /items/:id/bids returns outbid when bid is no longer highest", async () => {
-  let readCount = 0;
-  const handler = createApiHandler(createBaseDeps({
-    getCurrentHighBid: async () => {
-      readCount += 1;
-      if (readCount === 1) {
-        return null;
-      }
-      return {
-        id: "bid-other",
-        auctionId: "auction-1",
-        itemId: "item-1",
-        bidderId: "bidder-2",
-        amount: 120,
-        placedAt: "2026-02-20T18:00:02.000Z",
-      };
-    },
-  }));
   const req = createMockRequest(
     "POST",
     "/items/item-1/bids",
@@ -183,35 +154,9 @@ test("POST /items/:id/bids returns outbid when bid is no longer highest", async 
 
   await handler(req, res);
 
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error.code, "outbid");
-});
-
-test("POST /items/:id/bids returns phase_closed when auction is not Open", async () => {
-  const handler = createApiHandler(createBaseDeps({
-    getAuctionById: async () => ({
-      id: "auction-1",
-      name: "Auction 1",
-      status: "Pending",
-      timeZone: "America/Denver",
-      auctionCode: "CODE1",
-      notificationSettings: {inAppEnabled: true},
-      paymentUrl: null,
-      createdBy: "admin-1",
-      createdAt: "2026-02-13T04:00:00.000Z",
-      updatedAt: "2026-02-13T04:00:00.000Z",
-    }),
-  }));
-  const req = createMockRequest(
-    "POST",
-    "/items/item-1/bids",
-    "Bearer token",
-    {amount: 110}
-  );
-  const res = createMockResponse();
-
-  await handler(req, res);
-
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error.code, "phase_closed");
+  assert.equal(res.statusCode, 200);
+  assert.equal(auditInput.action, "bid_placed");
+  assert.equal(auditInput.targetId, "item-1");
+  assert.equal(auditInput.metadata.bidId, "bid-1");
+  assert.equal(auditInput.metadata.amount, 110);
 });

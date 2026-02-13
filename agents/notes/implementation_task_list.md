@@ -188,7 +188,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - bid_too_low and outbid cases.
      - phase_closed rejection.
 
-36) Bidding side effects: derived view + audit
+36) ✓ Bidding side effects: derived view + audit
    - Update derived high bid view + audit log.
    - Unit tests:
      - audit log entry created for bid.

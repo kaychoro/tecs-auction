@@ -118,6 +118,16 @@ function createStatefulBidDeps() {
         return bid;
       },
       getCurrentHighBid: async (itemId) => bidViews.getCurrentHighBid(itemId),
+      createAuditLog: async () => ({
+        id: "audit-1",
+        auctionId: "auction-1",
+        actorUserId: "bidder-1",
+        action: "bid_placed",
+        targetType: "item",
+        targetId: "item-1",
+        metadata: {},
+        createdAt: "2026-02-20T18:00:01.000Z",
+      }),
       listAuctionsForActor: async () => [],
       listJoinedAuctionsForUser: async () => [],
       getAuctionById: async () => ({
