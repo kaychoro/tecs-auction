@@ -385,7 +385,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - purge selection logic based on age/phase.
 
-74) PII purge: manual trigger
+74) ✓ PII purge: manual trigger
    - Implement L1-triggered immediate purge endpoint.
    - Unit tests:
      - role check and purge behavior.

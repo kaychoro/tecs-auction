@@ -29,6 +29,7 @@ import {
 } from "./repositories/notifications.js";
 import {TotalsRepository, type TotalsRecord} from "./repositories/totals.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
+import {createPiiPurgeDependencies} from "./piiPurge.js";
 
 export interface LiveWinnerRecord {
   id: string;
@@ -186,6 +187,7 @@ export interface ApiDependencies {
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
+  purgeAuctionPii: (auctionId: string) => Promise<number>;
 }
 
 /**
@@ -199,6 +201,10 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
   return async (req: Request, res: Response): Promise<void> => {
     if (req.method === "GET" && req.path === "/users/me") {
       await handleGetUsersMe(req, res, deps);
+      return;
+    }
+    if (req.method === "POST" && req.path === "/admin/purge-pii") {
+      await handlePostAdminPurgePii(req, res, deps);
       return;
     }
 
@@ -432,6 +438,38 @@ async function handleGetUsersMe(
       "Unexpected server error"
     );
     res.status(internalError.status).json(internalError.body);
+  }
+}
+
+/**
+ * Handles POST /admin/purge-pii.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ */
+async function handlePostAdminPurgePii(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for PII purge"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const auctionId = normalizeRequiredString(body.auctionId, "auctionId");
+    const redactedUsers = await deps.purgeAuctionPii(auctionId);
+    res.status(200).json({auctionId, redactedUsers});
+  } catch (error) {
+    respondWithApiError(res, error);
   }
 }
 
@@ -3097,6 +3135,7 @@ function createDefaultDependencies(): ApiDependencies {
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
   );
+  const piiPurgeDeps = createPiiPurgeDependencies();
 
   return {
     authenticate: async (authorizationHeader: string | undefined) => {
@@ -3305,5 +3344,7 @@ function createDefaultDependencies(): ApiDependencies {
     },
     getAuctionById: (auctionId: string) =>
       auctionsRepo.getAuctionById(auctionId),
+    purgeAuctionPii: (auctionId: string) =>
+      piiPurgeDeps.purgeAuctionPii(auctionId),
   };
 }
