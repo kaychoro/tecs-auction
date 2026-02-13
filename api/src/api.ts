@@ -115,6 +115,8 @@ export interface ApiDependencies {
     amount: number;
   }) => Promise<BidRecord>;
   listBidsForItem: (itemId: string) => Promise<BidRecord[]>;
+  getBidById: (bidId: string) => Promise<BidRecord | null>;
+  deleteBid: (bidId: string) => Promise<boolean>;
   getCurrentHighBid: (itemId: string) => Promise<BidRecord | null>;
   createAuditLog: (input: {
     auctionId: string;
@@ -254,6 +256,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
         await handleGetItem(req, res, deps, itemId);
         return;
       }
+    }
+
+    const bidId = parseBidId(req.path);
+    if (bidId && req.method === "DELETE") {
+      await handleDeleteBid(req, res, deps, bidId);
+      return;
     }
 
     const notFound = buildErrorResponse(404, "not_found", "Endpoint not found");
@@ -1359,6 +1367,86 @@ async function handleGetItemBids(
 }
 
 /**
+ * Handles DELETE /bids/:bidId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} bidId
+ */
+async function handleDeleteBid(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  bidId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for bid administration"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const bid = await deps.getBidById(bidId);
+    if (!bid) {
+      const notFound = buildErrorResponse(
+        404,
+        "bid_not_found",
+        "Bid not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const visibleAuctions = await deps.listAuctionsForActor(actor);
+      const canAccessAuction = visibleAuctions
+        .some((auction) => auction.id === bid.auctionId);
+      if (!canAccessAuction) {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const deleted = await deps.deleteBid(bidId);
+    if (!deleted) {
+      const notFound = buildErrorResponse(
+        404,
+        "bid_not_found",
+        "Bid not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+    await deps.createAuditLog({
+      auctionId: bid.auctionId,
+      actorUserId: actor.id,
+      action: "bid_deleted",
+      targetType: "bid",
+      targetId: bidId,
+      metadata: {
+        itemId: bid.itemId,
+        bidderId: bid.bidderId,
+        amount: bid.amount,
+      },
+    });
+
+    res.status(200).json({deleted: true, bidId});
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -1569,6 +1657,19 @@ function parseAuctionNotificationsRoute(path: string): string | null {
  */
 function parseItemId(path: string): string | null {
   const match = /^\/items\/([^/]+)(?:\/image|\/bids)?$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
+ * Parses bid ID from /bids/:bidId route paths.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseBidId(path: string): string | null {
+  const match = /^\/bids\/([^/]+)$/.exec(path);
   if (!match) {
     return null;
   }
@@ -1940,6 +2041,22 @@ function createDefaultDependencies(): ApiDependencies {
         .where("itemId", "==", itemId)
         .get();
       return snapshot.docs.map((doc) => doc.data() as BidRecord);
+    },
+    getBidById: async (bidId) => {
+      const snapshot = await getFirestore().collection("bids").doc(bidId).get();
+      if (!snapshot.exists) {
+        return null;
+      }
+      return snapshot.data() as BidRecord;
+    },
+    deleteBid: async (bidId) => {
+      const ref = getFirestore().collection("bids").doc(bidId);
+      const snapshot = await ref.get();
+      if (!snapshot.exists) {
+        return false;
+      }
+      await ref.delete();
+      return true;
     },
     getCurrentHighBid: (itemId) => bidViewsRepo.getCurrentHighBid(itemId),
     createAuditLog: (input) => auditLogsRepo.createAuditLog(input),

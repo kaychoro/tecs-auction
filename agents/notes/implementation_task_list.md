@@ -204,7 +204,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - admin-only access and sort order.
 
-39) Bids admin API: delete bid
+39) ✓ Bids admin API: delete bid
    - DELETE /api/bids/{bidId}.
    - Unit tests:
      - admin-only access and audit log entry.
