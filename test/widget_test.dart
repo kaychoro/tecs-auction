@@ -253,6 +253,31 @@ void main() {
     expect(find.text('Auction name is required'), findsOneWidget);
     expect(find.text('Auction code must be 6+ chars'), findsOneWidget);
   });
+
+  testWidgets('admin auction edit screen is role-gated', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminAuctionEditScreen(
+          canEdit: false,
+          name: 'Spring Fundraiser',
+          timeZone: 'America/New_York',
+          paymentUrl: 'https://example.org/pay',
+        ),
+      ),
+    );
+
+    final nameField = tester.widget<TextFormField>(
+      find.byKey(const Key('admin_edit_name')),
+    );
+    expect(nameField.enabled, false);
+
+    final saveButton = tester.widget<FilledButton>(
+      find.byKey(const Key('admin_edit_save')),
+    );
+    expect(saveButton.onPressed, isNull);
+  });
 }
 
 void _noop() {}

@@ -330,7 +330,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for list and create validation.
 
-63) Frontend admin: auction edit
+63) ✓ Frontend admin: auction edit
    - Implement auction edit screen (name, time zone, payment URL).
    - Unit tests:
      - widget tests for role-gated edit screen.

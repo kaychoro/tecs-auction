@@ -625,6 +625,61 @@ class AdminAuctionListCreateScreen extends StatefulWidget {
       _AdminAuctionListCreateScreenState();
 }
 
+class AdminAuctionEditScreen extends StatelessWidget {
+  const AdminAuctionEditScreen({
+    super.key,
+    required this.canEdit,
+    required this.name,
+    required this.timeZone,
+    required this.paymentUrl,
+  });
+
+  final bool canEdit;
+  final String name;
+  final String timeZone;
+  final String paymentUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Edit Auction')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextFormField(
+              key: const Key('admin_edit_name'),
+              initialValue: name,
+              enabled: canEdit,
+              decoration: const InputDecoration(labelText: 'Auction name'),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              key: const Key('admin_edit_timezone'),
+              initialValue: timeZone,
+              enabled: canEdit,
+              decoration: const InputDecoration(labelText: 'Time zone'),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              key: const Key('admin_edit_payment_url'),
+              initialValue: paymentUrl,
+              enabled: canEdit,
+              decoration: const InputDecoration(labelText: 'Payment URL'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              key: const Key('admin_edit_save'),
+              onPressed: canEdit ? () {} : null,
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminAuctionListCreateScreenState
     extends State<AdminAuctionListCreateScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
