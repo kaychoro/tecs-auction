@@ -238,7 +238,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - admin totals shape and role checks.
 
-45) Payment status endpoint
+45) ✓ Payment status endpoint
    - PATCH /api/auctions/{auctionId}/payments/{bidderId}.
    - Unit tests:
      - payment status updates with role checks.

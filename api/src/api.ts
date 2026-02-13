@@ -229,6 +229,17 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       await handleGetAuctionTotals(req, res, deps, auctionTotalsRoute);
       return;
     }
+    const auctionPaymentRoute = parseAuctionPaymentRoute(req.path);
+    if (req.method === "PATCH" && auctionPaymentRoute) {
+      await handlePatchAuctionPayment(
+        req,
+        res,
+        deps,
+        auctionPaymentRoute.auctionId,
+        auctionPaymentRoute.bidderId
+      );
+      return;
+    }
 
     const auctionSwitchRoute = parseAuctionSwitchRoute(req.path);
     if (req.method === "POST" && auctionSwitchRoute) {
@@ -949,6 +960,74 @@ async function handleGetAuctionTotals(
       pageSize: totals.length,
       total: totals.length,
     });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles PATCH /auctions/:auctionId/payments/:bidderId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ * @param {string} bidderId
+ */
+async function handlePatchAuctionPayment(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string,
+  bidderId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role === "Bidder") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for payment updates"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const paid = normalizeRequiredBoolean(body.paid, "paid");
+    const existing = await deps.getTotals(auctionId, bidderId);
+    if (!existing) {
+      const notFound = buildErrorResponse(
+        404,
+        "totals_not_found",
+        "Totals record not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    const updated = await deps.upsertTotals({
+      auctionId: existing.auctionId,
+      bidderId: existing.bidderId,
+      bidderNumber: existing.bidderNumber,
+      displayName: existing.displayName,
+      subtotal: existing.subtotal,
+      total: existing.total,
+      paid,
+    });
+    res.status(200).json(updated);
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1873,6 +1952,21 @@ function parseAuctionTotalsRoute(path: string): string | null {
     return null;
   }
   return match[1];
+}
+
+/**
+ * Parses params from /auctions/:auctionId/payments/:bidderId.
+ * @param {string} path
+ * @return {{auctionId: string, bidderId: string}|null}
+ */
+function parseAuctionPaymentRoute(
+  path: string
+): {auctionId: string; bidderId: string} | null {
+  const match = /^\/auctions\/([^/]+)\/payments\/([^/]+)$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return {auctionId: match[1], bidderId: match[2]};
 }
 
 /**
