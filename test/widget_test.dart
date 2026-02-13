@@ -383,6 +383,27 @@ void main() {
     );
     expect(nameField.controller?.text, 'Gift Basket');
   });
+
+  testWidgets('item image upload shows invalid image handling', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminItemImageUploadScreen(),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('image_filename_input')),
+      'malware.exe',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(find.byKey(const Key('image_error')), findsOneWidget);
+    expect(find.text('Unsupported file type'), findsOneWidget);
+    expect(find.byKey(const Key('image_preview')), findsNothing);
+  });
 }
 
 void _noop() {}

@@ -734,6 +734,74 @@ class AdminItemManagementScreen extends StatefulWidget {
       _AdminItemManagementScreenState();
 }
 
+class AdminItemImageUploadScreen extends StatefulWidget {
+  const AdminItemImageUploadScreen({super.key});
+
+  @override
+  State<AdminItemImageUploadScreen> createState() =>
+      _AdminItemImageUploadScreenState();
+}
+
+class _AdminItemImageUploadScreenState extends State<AdminItemImageUploadScreen> {
+  String? _selectedFile;
+  String? _error;
+
+  void _handleFileName(String fileName) {
+    final lower = fileName.toLowerCase();
+    final isValid = lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg');
+    setState(() {
+      if (!isValid) {
+        _selectedFile = null;
+        _error = 'Unsupported file type';
+      } else {
+        _selectedFile = fileName;
+        _error = null;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Item Image Upload')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              key: const Key('image_filename_input'),
+              decoration: const InputDecoration(
+                labelText: 'Image file name',
+                hintText: 'example.jpg',
+              ),
+              onSubmitted: _handleFileName,
+            ),
+            const SizedBox(height: 12),
+            if (_error != null)
+              Text(
+                _error!,
+                key: const Key('image_error'),
+                style: const TextStyle(color: Colors.red),
+              ),
+            if (_selectedFile != null)
+              Container(
+                key: const Key('image_preview'),
+                width: 220,
+                height: 130,
+                color: const Color(0xFFE8F5E9),
+                alignment: Alignment.center,
+                child: Text('Preview: $_selectedFile'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminItemManagementScreenState extends State<AdminItemManagementScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();

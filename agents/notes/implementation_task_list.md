@@ -355,7 +355,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for item create/edit validations.
 
-68) Frontend admin: item image upload
+68) ✓ Frontend admin: item image upload
    - Implement image upload UI with preview and error states.
    - Unit tests:
      - widget tests for invalid image handling.
