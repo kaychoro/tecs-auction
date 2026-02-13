@@ -140,11 +140,39 @@ void main() {
     expect(find.text('Current bid: \$90'), findsOneWidget);
     expect(find.byKey(const Key('item_detail_minus')), findsOneWidget);
     expect(find.byKey(const Key('item_detail_plus')), findsOneWidget);
+    expect(find.byKey(const Key('item_detail_place_bid')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('item_detail_plus')));
     await tester.pump();
 
     expect(find.text('Your bid: \$92'), findsOneWidget);
+  });
+
+  testWidgets('item detail shows bid confirmation and error state', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ItemDetailScreen(
+          item: AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 90),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('item_detail_minus')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('item_detail_minus')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('item_detail_place_bid')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('bid_confirm_dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('bid_confirm_submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('item_detail_error')), findsOneWidget);
+    expect(find.text('Bid must be higher than current bid.'), findsOneWidget);
   });
 }
 

@@ -455,6 +455,7 @@ class ItemDetailScreen extends StatefulWidget {
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late int _bidAmount;
+  String? _bidErrorCode;
 
   @override
   void initState() {
@@ -482,6 +483,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               key: const Key('item_detail_bid_amount'),
             ),
             const SizedBox(height: 12),
+            if (_bidErrorCode != null)
+              Container(
+                key: const Key('item_detail_error'),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE9E7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_messageForError(_bidErrorCode!)),
+              ),
             Row(
               children: [
                 OutlinedButton(
@@ -503,9 +515,64 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 14),
+            FilledButton(
+              key: const Key('item_detail_place_bid'),
+              onPressed: _confirmAndSubmitBid,
+              child: const Text('Place Bid'),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmAndSubmitBid() async {
+    final shouldSubmit = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          key: const Key('bid_confirm_dialog'),
+          title: const Text('Confirm Bid'),
+          content: Text('Submit bid for \$$_bidAmount?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('bid_confirm_submit'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSubmit != true) {
+      return;
+    }
+
+    setState(() {
+      if (_bidAmount <= widget.item.currentBid) {
+        _bidErrorCode = 'bid_too_low';
+      } else {
+        _bidErrorCode = null;
+      }
+    });
+  }
+
+  String _messageForError(String code) {
+    switch (code) {
+      case 'bid_too_low':
+        return 'Bid must be higher than current bid.';
+      case 'phase_closed':
+        return 'Bidding is closed for this item.';
+      case 'outbid':
+        return 'Another bidder placed a higher bid.';
+      default:
+        return 'Unable to place bid.';
+    }
   }
 }

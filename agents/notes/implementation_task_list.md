@@ -305,7 +305,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for bid controls rendering and current bid display.
 
-58) Frontend bidder: bid confirmation/errors
+58) ✓ Frontend bidder: bid confirmation/errors
    - Implement bid confirmation and error handling UI.
    - Unit tests:
      - widget tests for bid confirmation/error states.
