@@ -265,7 +265,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - export permission (L1/L2 only).
 
-50) QR endpoint
+50) ✓ QR endpoint
    - GET /api/items/{itemId}/qr (image/png).
    - Unit tests:
      - QR encodes correct item deep link.

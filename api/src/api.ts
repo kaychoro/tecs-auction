@@ -342,6 +342,11 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       await handlePostItemWinner(req, res, deps, itemWinnerRoute);
       return;
     }
+    const itemQrRoute = parseItemQrRoute(req.path);
+    if (req.method === "GET" && itemQrRoute) {
+      await handleGetItemQr(req, res, deps, itemQrRoute);
+      return;
+    }
     if (itemId) {
       if (req.method === "POST" && req.path.endsWith("/bids")) {
         await handlePostItemBids(req, res, deps, itemId);
@@ -1848,6 +1853,54 @@ async function handleDeleteItem(
 }
 
 /**
+ * Handles GET /items/:itemId/qr.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handleGetItemQr(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(item.auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const deepLink = buildItemDeepLink(item.id);
+    const payload = buildQrPngPayload(deepLink);
+    res.set("Content-Type", "image/png");
+    res.status(200).send(payload);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles POST /items/:itemId/image.
  * @param {Request} req
  * @param {Response} res
@@ -2523,6 +2576,19 @@ function parseItemWinnerRoute(path: string): string | null {
 }
 
 /**
+ * Parses item ID from /items/:itemId/qr.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseItemQrRoute(path: string): string | null {
+  const match = /^\/items\/([^/]+)\/qr$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Parses item ID from /items/:itemId route paths.
  * @param {string} path
  * @return {string|null}
@@ -2739,6 +2805,24 @@ function parsePositiveInt(value: unknown, fallback: number): number {
     }
   }
   return fallback;
+}
+
+/**
+ * Builds the item deep-link URL encoded in generated QR images.
+ * @param {string} itemId
+ * @return {string}
+ */
+function buildItemDeepLink(itemId: string): string {
+  return `https://tecs-auction.app/items/${encodeURIComponent(itemId)}`;
+}
+
+/**
+ * Creates a deterministic PNG payload for item QR responses.
+ * @param {string} deepLink
+ * @return {Buffer}
+ */
+function buildQrPngPayload(deepLink: string): Buffer {
+  return Buffer.from(`PNG_QR_PLACEHOLDER:${deepLink}`, "utf8");
 }
 
 /**
