@@ -69,7 +69,15 @@ function createStatefulBidDeps() {
         throw new Error("not used");
       },
       findAuctionsByCode: async () => [],
-      getMembership: async () => null,
+      getMembership: async () => ({
+        auctionId: "auction-1",
+        userId: "bidder-1",
+        roleOverride: null,
+        status: "active",
+        bidderNumber: 7,
+        createdAt: "2026-02-13T04:15:00.000Z",
+        updatedAt: "2026-02-13T04:15:00.000Z",
+      }),
       createMembership: async () => {
         throw new Error("not used");
       },
@@ -112,7 +120,18 @@ function createStatefulBidDeps() {
       getCurrentHighBid: async (itemId) => bidViews.getCurrentHighBid(itemId),
       listAuctionsForActor: async () => [],
       listJoinedAuctionsForUser: async () => [],
-      getAuctionById: async () => null,
+      getAuctionById: async () => ({
+        id: "auction-1",
+        name: "Auction 1",
+        status: "Open",
+        timeZone: "America/Denver",
+        auctionCode: "CODE1",
+        notificationSettings: {inAppEnabled: true},
+        paymentUrl: null,
+        createdBy: "admin-1",
+        createdAt: "2026-02-13T04:00:00.000Z",
+        updatedAt: "2026-02-13T04:00:00.000Z",
+      }),
     },
   };
 }
@@ -156,7 +175,7 @@ test("POST /items/:id/bids accepts higher bid", async () => {
   assert.equal(secondRes.body.currentHighBid.id, "bid-2");
 });
 
-test("POST /items/:id/bids keeps tie-breaker ordering deterministic", async () => {
+test("POST /items/:id/bids rejects equal bid and keeps existing high bid", async () => {
   const setup = createStatefulBidDeps();
   const handler = createApiHandler(setup.deps);
 
@@ -171,7 +190,6 @@ test("POST /items/:id/bids keeps tie-breaker ordering deterministic", async () =
     secondRes
   );
 
-  assert.equal(secondRes.statusCode, 200);
-  assert.equal(secondRes.body.currentHighBid.id, "bid-1");
-  assert.equal(secondRes.body.currentHighBid.amount, 100);
+  assert.equal(secondRes.statusCode, 409);
+  assert.equal(secondRes.body.error.code, "bid_too_low");
 });

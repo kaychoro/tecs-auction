@@ -182,7 +182,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - bid accepted (first bid, higher bid).
      - tie-breaker ordering correctness.
 
-35) Bidding API: validation and errors
+35) ✓ Bidding API: validation and errors
    - Validate Open phase, membership, and amount rules.
    - Unit tests:
      - bid_too_low and outbid cases.

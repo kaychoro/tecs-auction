@@ -1173,8 +1173,41 @@ async function handlePostItemBids(
       return;
     }
 
+    const membership = await deps.getMembership(item.auctionId, actor.id);
+    if (!membership || membership.status !== "active") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "User does not have access to this auction"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const auction = await deps.getAuctionById(item.auctionId);
+    if (!auction || auction.status !== "Open") {
+      const phaseClosed = buildErrorResponse(
+        409,
+        "phase_closed",
+        "Auction is not open for bidding"
+      );
+      res.status(phaseClosed.status).json(phaseClosed.body);
+      return;
+    }
+
     const body = (req.body || {}) as Record<string, unknown>;
     const amount = normalizeRequiredMoneyNumber(body.amount, "amount");
+    const currentBefore = await deps.getCurrentHighBid(itemId);
+    if (currentBefore && amount <= currentBefore.amount) {
+      const bidTooLow = buildErrorResponse(
+        409,
+        "bid_too_low",
+        "Bid must be greater than the current high bid"
+      );
+      res.status(bidTooLow.status).json(bidTooLow.body);
+      return;
+    }
+
     const bid = await deps.createBid({
       auctionId: item.auctionId,
       itemId: item.id,
@@ -1182,6 +1215,15 @@ async function handlePostItemBids(
       amount,
     });
     const currentHighBid = await deps.getCurrentHighBid(itemId);
+    if (!currentHighBid || currentHighBid.id !== bid.id) {
+      const outbid = buildErrorResponse(
+        409,
+        "outbid",
+        "A higher bid was placed before your bid was accepted"
+      );
+      res.status(outbid.status).json(outbid.body);
+      return;
+    }
 
     res.status(200).json({
       bid,
