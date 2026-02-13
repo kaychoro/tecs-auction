@@ -16,6 +16,7 @@ import {
   createPhaseAutoAdvanceDependencies,
   runPhaseAutoAdvanceJob,
 } from "./phaseAutoAdvance.js";
+import {createPiiPurgeDependencies, runPiiPurgeJob} from "./piiPurge.js";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -48,6 +49,19 @@ export const autoAdvanceAuctionPhases = onSchedule(
     );
   }
 );
+
+export const purgeClosedAuctionPii = onSchedule("every day 03:00", async () => {
+  if (!getApps().length) {
+    initializeApp();
+  }
+
+  const result = await runPiiPurgeJob(createPiiPurgeDependencies());
+  console.log(
+    `purge_closed_auction_pii scanned=${result.scanned} ` +
+    `purged_auctions=${result.purgedAuctions} ` +
+    `redacted_users=${result.redactedUsers}`
+  );
+});
 
 // export const helloWorld = onRequest((request, response) => {
 //   logger.info("Hello logs!", {structuredData: true});

@@ -380,7 +380,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for QR/PDF action triggers.
 
-73) PII purge: scheduled job
+73) ✓ PII purge: scheduled job
    - Implement scheduled purge job for closed auctions + 180 days.
    - Unit tests:
      - purge selection logic based on age/phase.
