@@ -426,6 +426,26 @@ void main() {
     expect(find.text('\$210'), findsOneWidget);
     expect(find.text('No'), findsOneWidget);
   });
+
+  testWidgets('payment and pickup update flow saves state', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminStatusUpdateScreen(),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('status_paid_checkbox')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('status_pickup_checkbox')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('status_save_button')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('status_saved_message')), findsOneWidget);
+    expect(find.text('Saved: paid=true, pickedUp=true'), findsOneWidget);
+  });
 }
 
 void _noop() {}

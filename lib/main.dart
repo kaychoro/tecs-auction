@@ -795,6 +795,67 @@ class AdminTotalsScreen extends StatelessWidget {
   }
 }
 
+class AdminStatusUpdateScreen extends StatefulWidget {
+  const AdminStatusUpdateScreen({super.key});
+
+  @override
+  State<AdminStatusUpdateScreen> createState() => _AdminStatusUpdateScreenState();
+}
+
+class _AdminStatusUpdateScreenState extends State<AdminStatusUpdateScreen> {
+  bool _paid = false;
+  bool _pickedUp = false;
+  bool _saved = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Payment & Pickup')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CheckboxListTile(
+              key: const Key('status_paid_checkbox'),
+              title: const Text('Mark bidder as paid'),
+              value: _paid,
+              onChanged: (value) {
+                setState(() {
+                  _saved = false;
+                  _paid = value ?? false;
+                });
+              },
+            ),
+            CheckboxListTile(
+              key: const Key('status_pickup_checkbox'),
+              title: const Text('Mark item as picked up'),
+              value: _pickedUp,
+              onChanged: (value) {
+                setState(() {
+                  _saved = false;
+                  _pickedUp = value ?? false;
+                });
+              },
+            ),
+            FilledButton(
+              key: const Key('status_save_button'),
+              onPressed: () => setState(() => _saved = true),
+              child: const Text('Save Status'),
+            ),
+            const SizedBox(height: 10),
+            if (_saved)
+              Text(
+                'Saved: paid=$_paid, pickedUp=$_pickedUp',
+                key: const Key('status_saved_message'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminItemImageUploadScreenState extends State<AdminItemImageUploadScreen> {
   String? _selectedFile;
   String? _error;

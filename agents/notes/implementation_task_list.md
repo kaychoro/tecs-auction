@@ -365,7 +365,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for totals table rendering.
 
-70) Frontend admin: payment/pickup updates
+70) ✓ Frontend admin: payment/pickup updates
    - Implement totals, payment, and pickup status screens.
    - Unit tests:
      - widget tests for payment/pickup update flows.
