@@ -161,7 +161,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - list/detail access rules.
 
-31) Items API: delete
+31) ✓ Items API: delete
    - DELETE /api/items/{itemId}.
    - Unit tests:
      - delete permission checks.

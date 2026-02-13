@@ -20,6 +20,10 @@ class InMemoryDocRef {
       data: () => value,
     };
   }
+
+  async delete() {
+    this.store.delete(this.id);
+  }
 }
 
 class InMemoryCollectionRef {
@@ -82,4 +86,27 @@ test("updateItem updates existing item and returns null when missing", async () 
 
   const missing = await repo.updateItem("missing-item", {name: "No Item"});
   assert.equal(missing, null);
+});
+
+test("deleteItem removes existing item and returns false when missing", async () => {
+  const repo = new ItemsRepository(new InMemoryCollectionRef(), {
+    idGenerator: () => "item-3",
+    now: () => "2026-02-12T21:00:00.000Z",
+  });
+
+  await repo.createItem({
+    auctionId: "auction-3",
+    name: "Delete Me",
+    type: "silent",
+    startingPrice: 20,
+  });
+
+  const deleted = await repo.deleteItem("item-3");
+  assert.equal(deleted, true);
+
+  const afterDelete = await repo.getItemById("item-3");
+  assert.equal(afterDelete, null);
+
+  const missing = await repo.deleteItem("missing-item");
+  assert.equal(missing, false);
 });

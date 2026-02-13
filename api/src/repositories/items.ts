@@ -48,6 +48,7 @@ interface DocSnapshot<T> {
 interface DocRef<T> {
   set(value: T): Promise<void>;
   get(): Promise<DocSnapshot<T>>;
+  delete(): Promise<void>;
 }
 
 export interface CollectionRef<T> {
@@ -138,5 +139,20 @@ export class ItemsRepository {
 
     await this.collection.doc(itemId).set(updated);
     return updated;
+  }
+
+  /**
+   * Deletes an item if it exists.
+   * @param {string} itemId
+   * @return {Promise<boolean>}
+   */
+  async deleteItem(itemId: string): Promise<boolean> {
+    const existing = await this.getItemById(itemId);
+    if (!existing) {
+      return false;
+    }
+
+    await this.collection.doc(itemId).delete();
+    return true;
   }
 }

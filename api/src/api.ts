@@ -86,6 +86,7 @@ export interface ApiDependencies {
       startingPrice?: number;
     }
   ) => Promise<ItemRecord | null>;
+  deleteItem: (itemId: string) => Promise<boolean>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -181,6 +182,10 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     if (itemId) {
       if (req.method === "PATCH") {
         await handlePatchItem(req, res, deps, itemId);
+        return;
+      }
+      if (req.method === "DELETE") {
+        await handleDeleteItem(req, res, deps, itemId);
         return;
       }
       if (req.method === "GET") {
@@ -949,6 +954,74 @@ async function handleGetItem(
 }
 
 /**
+ * Handles DELETE /items/:itemId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handleDeleteItem(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for item management"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const visibleAuctions = await deps.listAuctionsForActor(actor);
+      const canAccessAuction = visibleAuctions
+        .some((auction) => auction.id === item.auctionId);
+      if (!canAccessAuction) {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const deleted = await deps.deleteItem(itemId);
+    if (!deleted) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json({deleted: true, itemId});
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -1467,6 +1540,7 @@ function createDefaultDependencies(): ApiDependencies {
       return snapshot.docs.map((doc) => doc.data() as ItemRecord);
     },
     updateItem: (itemId, updates) => itemsRepo.updateItem(itemId, updates),
+    deleteItem: (itemId) => itemsRepo.deleteItem(itemId),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
