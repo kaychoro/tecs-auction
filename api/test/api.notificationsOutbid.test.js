@@ -40,7 +40,7 @@ function createBaseDeps(overrides = {}) {
       role: "Bidder",
       email: "bidder@example.com",
       phone: "555-0010",
-      displayName: "Bidder",
+      displayName: "Bidder One",
       createdAt: "2026-02-13T04:00:00.000Z",
       updatedAt: "2026-02-13T04:00:00.000Z",
     }),
@@ -101,7 +101,9 @@ function createBaseDeps(overrides = {}) {
       ...input,
       placedAt: "2026-02-20T18:00:01.000Z",
     }),
-    getCurrentHighBid: async () => null,
+    listBidsForItem: async () => [],
+    getBidById: async () => null,
+    deleteBid: async () => false,
     createAuditLog: async () => ({
       id: "audit-1",
       auctionId: "auction-1",
@@ -141,78 +143,110 @@ function createBaseDeps(overrides = {}) {
   };
 }
 
-test("POST /items/:id/bids returns bid_too_low when amount is not above high bid", async () => {
+test("POST /items/:id/bids creates outbid notification for displaced bidder", async () => {
+  let readCount = 0;
+  let notificationInput = null;
   const handler = createApiHandler(createBaseDeps({
-    getCurrentHighBid: async () => ({
-      id: "bid-high",
-      auctionId: "auction-1",
-      itemId: "item-1",
-      bidderId: "bidder-2",
-      amount: 100,
-      placedAt: "2026-02-20T18:00:00.000Z",
-    }),
+    getCurrentHighBid: async () => {
+      readCount += 1;
+      if (readCount === 1) {
+        return {
+          id: "bid-old",
+          auctionId: "auction-1",
+          itemId: "item-1",
+          bidderId: "bidder-2",
+          amount: 90,
+          placedAt: "2026-02-20T18:00:00.000Z",
+        };
+      }
+      return {
+        id: "bid-1",
+        auctionId: "auction-1",
+        itemId: "item-1",
+        bidderId: "bidder-1",
+        amount: 110,
+        placedAt: "2026-02-20T18:00:01.000Z",
+      };
+    },
+    createNotification: async (input) => {
+      notificationInput = input;
+      return {
+        id: "notification-1",
+        ...input,
+        createdAt: "2026-02-20T18:00:01.000Z",
+        readAt: null,
+      };
+    },
   }));
+
   const req = createMockRequest(
     "POST",
     "/items/item-1/bids",
     "Bearer token",
-    {amount: 100}
+    {amount: 110}
   );
   const res = createMockResponse();
 
   await handler(req, res);
 
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error.code, "bid_too_low");
+  assert.equal(res.statusCode, 200);
+  assert.equal(notificationInput.userId, "bidder-2");
+  assert.equal(notificationInput.type, "outbid");
 });
 
-test("POST /items/:id/bids returns outbid when bid is no longer highest", async () => {
+test("POST /items/:id/bids suppresses notifications when disabled", async () => {
+  let notified = false;
   let readCount = 0;
   const handler = createApiHandler(createBaseDeps({
     getCurrentHighBid: async () => {
       readCount += 1;
       if (readCount === 1) {
-        return null;
+        return {
+          id: "bid-old",
+          auctionId: "auction-1",
+          itemId: "item-1",
+          bidderId: "bidder-2",
+          amount: 90,
+          placedAt: "2026-02-20T18:00:00.000Z",
+        };
       }
       return {
-        id: "bid-other",
+        id: "bid-1",
         auctionId: "auction-1",
         itemId: "item-1",
-        bidderId: "bidder-2",
-        amount: 120,
-        placedAt: "2026-02-20T18:00:02.000Z",
+        bidderId: "bidder-1",
+        amount: 110,
+        placedAt: "2026-02-20T18:00:01.000Z",
       };
     },
-  }));
-  const req = createMockRequest(
-    "POST",
-    "/items/item-1/bids",
-    "Bearer token",
-    {amount: 110}
-  );
-  const res = createMockResponse();
-
-  await handler(req, res);
-
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error.code, "outbid");
-});
-
-test("POST /items/:id/bids returns phase_closed when auction is not Open", async () => {
-  const handler = createApiHandler(createBaseDeps({
     getAuctionById: async () => ({
       id: "auction-1",
       name: "Auction 1",
-      status: "Pending",
+      status: "Open",
       timeZone: "America/Denver",
       auctionCode: "CODE1",
-      notificationSettings: {inAppEnabled: true},
+      notificationSettings: {inAppEnabled: false},
       paymentUrl: null,
       createdBy: "admin-1",
       createdAt: "2026-02-13T04:00:00.000Z",
       updatedAt: "2026-02-13T04:00:00.000Z",
     }),
+    createNotification: async () => {
+      notified = true;
+      return {
+        id: "notification-1",
+        auctionId: "auction-1",
+        userId: "bidder-2",
+        type: "outbid",
+        message: "Your bid is no longer the highest",
+        refType: "item",
+        refId: "item-1",
+        createdAt: "2026-02-20T18:00:01.000Z",
+        readAt: null,
+      };
+    },
   }));
+
   const req = createMockRequest(
     "POST",
     "/items/item-1/bids",
@@ -223,6 +257,6 @@ test("POST /items/:id/bids returns phase_closed when auction is not Open", async
 
   await handler(req, res);
 
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error.code, "phase_closed");
+  assert.equal(res.statusCode, 200);
+  assert.equal(notified, false);
 });

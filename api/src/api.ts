@@ -23,6 +23,10 @@ import {
   AuditLogsRepository,
   type AuditLogRecord,
 } from "./repositories/auditLogs.js";
+import {
+  NotificationsRepository,
+  type NotificationRecord,
+} from "./repositories/notifications.js";
 import {TotalsRepository, type TotalsRecord} from "./repositories/totals.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
@@ -139,6 +143,14 @@ export interface ApiDependencies {
     total: number;
     paid: boolean;
   }) => Promise<TotalsRecord>;
+  createNotification: (input: {
+    auctionId: string;
+    userId: string;
+    type: string;
+    message: string;
+    refType: string;
+    refId: string;
+  }) => Promise<NotificationRecord>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -1284,6 +1296,18 @@ async function handlePostItemBids(
       total: (existingTotals?.total || 0) + bid.amount,
       paid: existingTotals?.paid || false,
     });
+    if (currentBefore &&
+      currentBefore.bidderId !== actor.id &&
+      auction.notificationSettings?.inAppEnabled !== false) {
+      await deps.createNotification({
+        auctionId: item.auctionId,
+        userId: currentBefore.bidderId,
+        type: "outbid",
+        message: "Your bid is no longer the highest",
+        refType: "item",
+        refId: item.id,
+      });
+    }
 
     res.status(200).json({
       bid,
@@ -1943,6 +1967,9 @@ function createDefaultDependencies(): ApiDependencies {
   const totalsRepo = new TotalsRepository(
     getFirestore().collection("totals") as never
   );
+  const notificationsRepo = new NotificationsRepository(
+    getFirestore().collection("notifications") as never
+  );
   const bidderNumberRepo = new BidderNumberCountersRepository(
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
@@ -2063,6 +2090,7 @@ function createDefaultDependencies(): ApiDependencies {
     getTotals: (auctionId, bidderId) =>
       totalsRepo.getTotals(auctionId, bidderId),
     upsertTotals: (input) => totalsRepo.upsertTotals(input),
+    createNotification: (input) => notificationsRepo.createNotification(input),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

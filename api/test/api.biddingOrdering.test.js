@@ -133,6 +133,12 @@ function createStatefulBidDeps() {
         ...input,
         updatedAt: "2026-02-20T18:00:01.000Z",
       }),
+      createNotification: async (input) => ({
+        id: "notification-1",
+        ...input,
+        createdAt: "2026-02-20T18:00:01.000Z",
+        readAt: null,
+      }),
       listAuctionsForActor: async () => [],
       listJoinedAuctionsForUser: async () => [],
       getAuctionById: async () => ({

@@ -209,7 +209,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - admin-only access and audit log entry.
 
-40) Notifications: create outbid
+40) ✓ Notifications: create outbid
    - Create outbid notification on successful higher bid.
    - Respect auction notification settings (disable when in_app_enabled is false).
    - Unit tests:
