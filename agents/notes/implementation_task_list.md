@@ -216,7 +216,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - notification created for displaced bidder only.
      - notifications suppressed when disabled.
 
-41) Notifications: list + read
+41) ✓ Notifications: list + read
    - GET /api/notifications (paging, newest first).
    - PATCH /api/notifications/{notificationId} and mark-all-read.
    - Unit tests:

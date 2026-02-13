@@ -151,6 +151,19 @@ export interface ApiDependencies {
     refType: string;
     refId: string;
   }) => Promise<NotificationRecord>;
+  listNotificationsForUser: (input: {
+    userId: string;
+    page: number;
+    pageSize: number;
+  }) => Promise<NotificationRecord[]>;
+  markNotificationRead: (
+    notificationId: string,
+    readAt: string
+  ) => Promise<NotificationRecord | null>;
+  markAllNotificationsRead: (
+    userId: string,
+    readAt: string
+  ) => Promise<number>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -182,6 +195,20 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
 
     if (req.method === "GET" && req.path === "/auctions/joined") {
       await handleGetJoinedAuctions(req, res, deps);
+      return;
+    }
+    if (req.method === "GET" && req.path === "/notifications") {
+      await handleGetNotifications(req, res, deps);
+      return;
+    }
+    if (req.method === "PATCH" && req.path === "/notifications/mark-all-read") {
+      await handlePatchNotificationsMarkAllRead(req, res, deps);
+      return;
+    }
+
+    const notificationIdRoute = parseNotificationId(req.path);
+    if (req.method === "PATCH" && notificationIdRoute) {
+      await handlePatchNotificationRead(req, res, deps, notificationIdRoute);
       return;
     }
 
@@ -630,6 +657,98 @@ async function handleGetJoinedAuctions(
       pageSize: auctions.length,
       total: auctions.length,
     });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /notifications.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ */
+async function handleGetNotifications(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const page = parsePositiveInt(req.query?.page, 1);
+    const pageSize = parsePositiveInt(req.query?.pageSize, 20);
+    const notifications = await deps.listNotificationsForUser({
+      userId: actor.id,
+      page,
+      pageSize,
+    });
+    const sorted = [...notifications].sort((left, right) =>
+      right.createdAt.localeCompare(left.createdAt)
+    );
+    res.status(200).json({
+      data: sorted,
+      page,
+      pageSize,
+      total: sorted.length,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles PATCH /notifications/:notificationId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} notificationId
+ */
+async function handlePatchNotificationRead(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  notificationId: string
+): Promise<void> {
+  try {
+    await getAuthenticatedActor(req, deps);
+    const updated = await deps.markNotificationRead(
+      notificationId,
+      new Date().toISOString()
+    );
+    if (!updated) {
+      const notFound = buildErrorResponse(
+        404,
+        "notification_not_found",
+        "Notification not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles PATCH /notifications/mark-all-read.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ */
+async function handlePatchNotificationsMarkAllRead(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const updatedCount = await deps.markAllNotificationsRead(
+      actor.id,
+      new Date().toISOString()
+    );
+    res.status(200).json({updatedCount});
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1701,6 +1820,19 @@ function parseBidId(path: string): string | null {
 }
 
 /**
+ * Parses notification ID from /notifications/:notificationId.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseNotificationId(path: string): string | null {
+  const match = /^\/notifications\/([^/]+)$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Validates and returns a required string field.
  * @param {unknown} value
  * @param {string} fieldName
@@ -1862,6 +1994,22 @@ function normalizeRequiredBoolean(value: unknown, fieldName: string): boolean {
     );
   }
   return value;
+}
+
+/**
+ * Parses a positive integer query value with fallback.
+ * @param {unknown} value
+ * @param {number} fallback
+ * @return {number}
+ */
+function parsePositiveInt(value: unknown, fallback: number): number {
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return fallback;
 }
 
 /**
@@ -2091,6 +2239,28 @@ function createDefaultDependencies(): ApiDependencies {
       totalsRepo.getTotals(auctionId, bidderId),
     upsertTotals: (input) => totalsRepo.upsertTotals(input),
     createNotification: (input) => notificationsRepo.createNotification(input),
+    listNotificationsForUser: async (input) => {
+      const snapshot = await getFirestore()
+        .collection("notifications")
+        .where("userId", "==", input.userId)
+        .get();
+      const records = snapshot.docs
+        .map((doc) => doc.data() as NotificationRecord);
+      const start = (input.page - 1) * input.pageSize;
+      return records.slice(start, start + input.pageSize);
+    },
+    markNotificationRead: (notificationId, readAt) =>
+      notificationsRepo.updateNotification(notificationId, {readAt}),
+    markAllNotificationsRead: async (userId, readAt) => {
+      const snapshot = await getFirestore()
+        .collection("notifications")
+        .where("userId", "==", userId)
+        .get();
+      await Promise.all(snapshot.docs.map((doc) =>
+        doc.ref.set({...doc.data(), readAt})
+      ));
+      return snapshot.docs.length;
+    },
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
