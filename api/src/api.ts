@@ -23,6 +23,7 @@ import {
   AuditLogsRepository,
   type AuditLogRecord,
 } from "./repositories/auditLogs.js";
+import {TotalsRepository, type TotalsRecord} from "./repositories/totals.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
 export interface ApiDependencies {
@@ -122,6 +123,19 @@ export interface ApiDependencies {
     targetId: string;
     metadata?: Record<string, unknown>;
   }) => Promise<AuditLogRecord>;
+  getTotals: (
+    auctionId: string,
+    bidderId: string
+  ) => Promise<TotalsRecord | null>;
+  upsertTotals: (input: {
+    auctionId: string;
+    bidderId: string;
+    bidderNumber: number;
+    displayName: string;
+    subtotal: number;
+    total: number;
+    paid: boolean;
+  }) => Promise<TotalsRecord>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -1247,6 +1261,16 @@ async function handlePostItemBids(
         amount: bid.amount,
       },
     });
+    const existingTotals = await deps.getTotals(item.auctionId, actor.id);
+    await deps.upsertTotals({
+      auctionId: item.auctionId,
+      bidderId: actor.id,
+      bidderNumber: membership.bidderNumber || 0,
+      displayName: actor.displayName || actor.id,
+      subtotal: (existingTotals?.subtotal || 0) + bid.amount,
+      total: (existingTotals?.total || 0) + bid.amount,
+      paid: existingTotals?.paid || false,
+    });
 
     res.status(200).json({
       bid,
@@ -1307,6 +1331,7 @@ async function handleGetAuctionById(
 interface AuthenticatedActor {
   id: string;
   role: "Bidder" | "AdminL3" | "AdminL2" | "AdminL1";
+  displayName?: string;
 }
 
 /**
@@ -1328,6 +1353,7 @@ async function getAuthenticatedActor(
   return {
     id: actorUser.id,
     role: actorUser.role,
+    displayName: actorUser.displayName,
   };
 }
 
@@ -1736,6 +1762,9 @@ function createDefaultDependencies(): ApiDependencies {
   const auditLogsRepo = new AuditLogsRepository(
     getFirestore().collection("audit_logs") as never
   );
+  const totalsRepo = new TotalsRepository(
+    getFirestore().collection("totals") as never
+  );
   const bidderNumberRepo = new BidderNumberCountersRepository(
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
@@ -1830,6 +1859,9 @@ function createDefaultDependencies(): ApiDependencies {
     createBid: (input) => bidsRepo.createBid(input),
     getCurrentHighBid: (itemId) => bidViewsRepo.getCurrentHighBid(itemId),
     createAuditLog: (input) => auditLogsRepo.createAuditLog(input),
+    getTotals: (auctionId, bidderId) =>
+      totalsRepo.getTotals(auctionId, bidderId),
+    upsertTotals: (input) => totalsRepo.upsertTotals(input),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

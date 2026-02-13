@@ -128,6 +128,11 @@ function createStatefulBidDeps() {
         metadata: {},
         createdAt: "2026-02-20T18:00:01.000Z",
       }),
+      getTotals: async () => null,
+      upsertTotals: async (input) => ({
+        ...input,
+        updatedAt: "2026-02-20T18:00:01.000Z",
+      }),
       listAuctionsForActor: async () => [],
       listJoinedAuctionsForUser: async () => [],
       getAuctionById: async () => ({

@@ -193,7 +193,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - audit log entry created for bid.
 
-37) Bidding side effects: totals + race tests
+37) ✓ Bidding side effects: totals + race tests
    - Update totals on bid placement.
    - Unit tests:
      - totals updated on bid placement.
