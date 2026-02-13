@@ -24,6 +24,76 @@ Each phase restricts actions (e.g., bidding only in Open; checkout in Complete; 
 - Payment is handled by an external URL configured by admins.
 - Designed to support at least 100 concurrent users.
 
+## Prerequisites
+- Node.js 22.x
+- npm 10+
+- Flutter SDK (stable channel)
+- Firebase CLI (`firebase-tools`)
+
+Recommended:
+- Use the npm-based Firebase CLI (`npm i -g firebase-tools`) so the Functions emulator uses your local Node runtime.
+
+## Quick Start
+From repository root:
+
+```bash
+flutter pub get
+npm --prefix api install
+```
+
+## Run Locally
+Use two terminals from repository root.
+
+Terminal 1 (API + Firebase services):
+```bash
+firebase emulators:start --project tecs-auction-v2 --only auth,firestore,functions,storage,hosting
+```
+
+Terminal 2 (Flutter web app):
+```bash
+flutter run -d chrome
+```
+
+Useful local endpoints:
+- Emulator UI: `http://127.0.0.1:4000`
+- Hosting emulator: `http://127.0.0.1:5002`
+- Functions emulator base: `http://127.0.0.1:5001`
+
+## Build & Test
+Run these from repository root.
+
+Backend (API):
+```bash
+npm --prefix api run lint
+npm --prefix api run build
+npm --prefix api test
+```
+
+Frontend (Flutter):
+```bash
+flutter analyze
+flutter test
+flutter build web
+```
+
+All-in-one emulator smoke check:
+```bash
+firebase emulators:exec --project tecs-auction-v2 --only auth,firestore,functions,storage,hosting "true"
+```
+
+## Suggested Verification Flow
+1. Run backend checks (`lint`, `build`, `test`).
+2. Run frontend checks (`analyze`, `test`).
+3. Start emulators.
+4. Launch Flutter web app.
+5. Manually verify core flows:
+   - Bidder registration and auction join
+   - Silent bidding and outbid behavior
+   - Live winner assignment
+   - Payment and pickup status updates
+   - Reports, CSV export, QR and QR-PDF actions
+   - PII purge endpoints/jobs (admin only)
+
 ## Reference docs
 - Requirements: `Auction_System_Requirements.md`
 - User stories: `Auction_System_User_Stories.md`
