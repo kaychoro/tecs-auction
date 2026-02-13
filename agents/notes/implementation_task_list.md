@@ -360,7 +360,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for invalid image handling.
 
-69) Frontend admin: totals view
+69) ✓ Frontend admin: totals view
    - Implement totals view for admin.
    - Unit tests:
      - widget tests for totals table rendering.

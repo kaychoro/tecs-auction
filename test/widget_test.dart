@@ -404,6 +404,28 @@ void main() {
     expect(find.text('Unsupported file type'), findsOneWidget);
     expect(find.byKey(const Key('image_preview')), findsNothing);
   });
+
+  testWidgets('admin totals table renders rows', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminTotalsScreen(
+          rows: [
+            BidderTotalsRow(
+              bidderNumber: 7,
+              displayName: 'Bidder One',
+              total: 210,
+              paid: false,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.text('Bidder #'), findsOneWidget);
+    expect(find.text('Bidder One'), findsOneWidget);
+    expect(find.text('\$210'), findsOneWidget);
+    expect(find.text('No'), findsOneWidget);
+  });
 }
 
 void _noop() {}

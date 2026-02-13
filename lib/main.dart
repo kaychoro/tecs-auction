@@ -742,6 +742,59 @@ class AdminItemImageUploadScreen extends StatefulWidget {
       _AdminItemImageUploadScreenState();
 }
 
+class BidderTotalsRow {
+  const BidderTotalsRow({
+    required this.bidderNumber,
+    required this.displayName,
+    required this.total,
+    required this.paid,
+  });
+
+  final int bidderNumber;
+  final String displayName;
+  final int total;
+  final bool paid;
+}
+
+class AdminTotalsScreen extends StatelessWidget {
+  const AdminTotalsScreen({
+    super.key,
+    required this.rows,
+  });
+
+  final List<BidderTotalsRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Bidder Totals')),
+      body: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: const [
+            DataColumn(label: Text('Bidder #')),
+            DataColumn(label: Text('Name')),
+            DataColumn(label: Text('Total')),
+            DataColumn(label: Text('Paid')),
+          ],
+          rows: rows
+              .map(
+                (row) => DataRow(
+                  cells: [
+                    DataCell(Text('${row.bidderNumber}')),
+                    DataCell(Text(row.displayName)),
+                    DataCell(Text('\$${row.total}')),
+                    DataCell(Text(row.paid ? 'Yes' : 'No')),
+                  ],
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminItemImageUploadScreenState extends State<AdminItemImageUploadScreen> {
   String? _selectedFile;
   String? _error;
