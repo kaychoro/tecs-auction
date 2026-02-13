@@ -114,6 +114,7 @@ export interface ApiDependencies {
     bidderId: string;
     amount: number;
   }) => Promise<BidRecord>;
+  listBidsForItem: (itemId: string) => Promise<BidRecord[]>;
   getCurrentHighBid: (itemId: string) => Promise<BidRecord | null>;
   createAuditLog: (input: {
     auctionId: string;
@@ -231,6 +232,10 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     if (itemId) {
       if (req.method === "POST" && req.path.endsWith("/bids")) {
         await handlePostItemBids(req, res, deps, itemId);
+        return;
+      }
+      if (req.method === "GET" && req.path.endsWith("/bids")) {
+        await handleGetItemBids(req, res, deps, itemId);
         return;
       }
       if (req.method === "POST" && req.path.endsWith("/image")) {
@@ -1282,6 +1287,78 @@ async function handlePostItemBids(
 }
 
 /**
+ * Handles GET /items/:itemId/bids.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handleGetItemBids(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for bid administration"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const visibleAuctions = await deps.listAuctionsForActor(actor);
+      const canAccessAuction = visibleAuctions
+        .some((auction) => auction.id === item.auctionId);
+      if (!canAccessAuction) {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const bids = await deps.listBidsForItem(itemId);
+    const sorted = [...bids].sort((left, right) => {
+      if (left.amount !== right.amount) {
+        return right.amount - left.amount;
+      }
+      if (left.placedAt !== right.placedAt) {
+        return left.placedAt.localeCompare(right.placedAt);
+      }
+      return left.id.localeCompare(right.id);
+    });
+    res.status(200).json({
+      data: sorted,
+      page: 1,
+      pageSize: sorted.length,
+      total: sorted.length,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -1857,6 +1934,13 @@ function createDefaultDependencies(): ApiDependencies {
     deleteItem: (itemId) => itemsRepo.deleteItem(itemId),
     createImage: (input) => imagesRepo.createImage(input),
     createBid: (input) => bidsRepo.createBid(input),
+    listBidsForItem: async (itemId) => {
+      const snapshot = await getFirestore()
+        .collection("bids")
+        .where("itemId", "==", itemId)
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as BidRecord);
+    },
     getCurrentHighBid: (itemId) => bidViewsRepo.getCurrentHighBid(itemId),
     createAuditLog: (input) => auditLogsRepo.createAuditLog(input),
     getTotals: (auctionId, bidderId) =>

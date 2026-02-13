@@ -199,7 +199,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - totals updated on bid placement.
      - concurrent bid race ordering (transaction conflict simulation).
 
-38) Bids admin API: list item bids
+38) ✓ Bids admin API: list item bids
    - GET /api/items/{itemId}/bids.
    - Unit tests:
      - admin-only access and sort order.
