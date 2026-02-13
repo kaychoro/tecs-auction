@@ -467,6 +467,26 @@ void main() {
 
     expect(exported, true);
   });
+
+  testWidgets('QR and PDF action triggers fire', (WidgetTester tester) async {
+    var qrTriggered = false;
+    var pdfTriggered = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminQrPdfActionsScreen(
+          onGenerateQr: () => qrTriggered = true,
+          onGeneratePdf: () => pdfTriggered = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('admin_generate_qr')));
+    await tester.tap(find.byKey(const Key('admin_generate_pdf')));
+    await tester.pump();
+
+    expect(qrTriggered, true);
+    expect(pdfTriggered, true);
+  });
 }
 
 void _noop() {}

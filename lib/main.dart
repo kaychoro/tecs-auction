@@ -842,6 +842,43 @@ class AdminReportsScreen extends StatelessWidget {
   }
 }
 
+class AdminQrPdfActionsScreen extends StatelessWidget {
+  const AdminQrPdfActionsScreen({
+    super.key,
+    required this.onGenerateQr,
+    required this.onGeneratePdf,
+  });
+
+  final VoidCallback onGenerateQr;
+  final VoidCallback onGeneratePdf;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('QR & PDF')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FilledButton(
+              key: const Key('admin_generate_qr'),
+              onPressed: onGenerateQr,
+              child: const Text('Generate Item QR'),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              key: const Key('admin_generate_pdf'),
+              onPressed: onGeneratePdf,
+              child: const Text('Generate QR PDF'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminStatusUpdateScreenState extends State<AdminStatusUpdateScreen> {
   bool _paid = false;
   bool _pickedUp = false;

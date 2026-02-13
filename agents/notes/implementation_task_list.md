@@ -375,7 +375,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for export actions.
 
-72) Frontend admin: QR/PDF actions
+72) ✓ Frontend admin: QR/PDF actions
    - Implement report export and QR/PDF generation UI actions.
    - Unit tests:
      - widget tests for QR/PDF action triggers.
