@@ -143,6 +143,7 @@ export interface ApiDependencies {
     total: number;
     paid: boolean;
   }) => Promise<TotalsRecord>;
+  listTotalsForAuction: (auctionId: string) => Promise<TotalsRecord[]>;
   createNotification: (input: {
     auctionId: string;
     userId: string;
@@ -221,6 +222,11 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     const auctionTotalsMeRoute = parseAuctionTotalsMeRoute(req.path);
     if (req.method === "GET" && auctionTotalsMeRoute) {
       await handleGetAuctionTotalsMe(req, res, deps, auctionTotalsMeRoute);
+      return;
+    }
+    const auctionTotalsRoute = parseAuctionTotalsRoute(req.path);
+    if (req.method === "GET" && auctionTotalsRoute) {
+      await handleGetAuctionTotals(req, res, deps, auctionTotalsRoute);
       return;
     }
 
@@ -893,6 +899,56 @@ async function handleGetAuctionTotalsMe(
         updatedAt: new Date().toISOString(),
       }
     );
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/:auctionId/totals.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionTotals(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role === "Bidder") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for totals administration"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const totals = await deps.listTotalsForAuction(auctionId);
+    res.status(200).json({
+      data: totals,
+      page: 1,
+      pageSize: totals.length,
+      total: totals.length,
+    });
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1807,6 +1863,19 @@ function parseAuctionTotalsMeRoute(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/totals.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionTotalsRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/totals$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Parses auction ID from /auctions/:auctionId/items route paths.
  * @param {string} path
  * @return {string|null}
@@ -2303,6 +2372,13 @@ function createDefaultDependencies(): ApiDependencies {
     getTotals: (auctionId, bidderId) =>
       totalsRepo.getTotals(auctionId, bidderId),
     upsertTotals: (input) => totalsRepo.upsertTotals(input),
+    listTotalsForAuction: async (auctionId) => {
+      const snapshot = await getFirestore()
+        .collection("totals")
+        .where("auctionId", "==", auctionId)
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as TotalsRecord);
+    },
     createNotification: (input) => notificationsRepo.createNotification(input),
     listNotificationsForUser: async (input) => {
       const snapshot = await getFirestore()

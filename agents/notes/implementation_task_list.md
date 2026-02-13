@@ -233,7 +233,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - bidder totals shape and access rules.
 
-44) Totals endpoint: admin view
+44) ✓ Totals endpoint: admin view
    - GET /api/auctions/{auctionId}/totals.
    - Unit tests:
      - admin totals shape and role checks.
