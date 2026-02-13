@@ -400,7 +400,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Tests:
      - integration test for bid flow.
 
-77) Integration tests: phase auto-advance
+77) ✓ Integration tests: phase auto-advance
    - Phase auto-advance flow with manual override precedence.
    - Tests:
      - integration test for auto-advance precedence.
