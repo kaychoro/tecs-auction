@@ -395,7 +395,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - redaction behavior leaves non-PII intact.
 
-76) Integration tests: bid flow
+76) ✓ Integration tests: bid flow
    - End-to-end bid flow (join -> bid -> outbid -> notification).
    - Tests:
      - integration test for bid flow.
