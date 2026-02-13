@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   isAuctionEligibleForPurge,
+  redactUserPii,
   runPiiPurgeJob,
 } = require('../lib/piiPurge.js');
 
@@ -67,4 +68,26 @@ test('runPiiPurgeJob purges only eligible auctions', async () => {
   assert.equal(result.scanned, 2);
   assert.equal(result.purgedAuctions, 1);
   assert.equal(result.redactedUsers, 3);
+});
+
+test('redactUserPii clears PII and keeps non-PII fields', () => {
+  const redacted = redactUserPii(
+    {
+      id: 'user-1',
+      role: 'Bidder',
+      email: 'user@example.com',
+      phone: '555-123-9999',
+      displayName: 'Pat',
+      lastAuctionId: 'auction-9',
+      createdAt: '2025-01-01T00:00:00.000Z',
+    },
+    '2026-08-01T00:00:00.000Z'
+  );
+
+  assert.equal(redacted.email, null);
+  assert.equal(redacted.phone, null);
+  assert.equal(redacted.displayName, 'Redacted User');
+  assert.equal(redacted.role, 'Bidder');
+  assert.equal(redacted.lastAuctionId, 'auction-9');
+  assert.equal(redacted.createdAt, '2025-01-01T00:00:00.000Z');
 });

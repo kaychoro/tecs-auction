@@ -107,14 +107,9 @@ export function createPiiPurgeDependencies(): PiiPurgeDependencies {
       await Promise.all(
         usersSnapshot.docs.map(async (doc) => {
           const user = doc.data() as Record<string, unknown>;
+          const redacted = redactUserPii(user, new Date().toISOString());
           await doc.ref.set(
-            {
-              ...user,
-              email: null,
-              phone: null,
-              displayName: "Redacted User",
-              updatedAt: new Date().toISOString(),
-            },
+            redacted,
             {merge: true}
           );
         })
@@ -122,5 +117,24 @@ export function createPiiPurgeDependencies(): PiiPurgeDependencies {
 
       return usersSnapshot.docs.length;
     },
+  };
+}
+
+/**
+ * Redacts PII fields while preserving non-PII user fields.
+ * @param {Record<string, unknown>} user
+ * @param {string} nowIso
+ * @return {Record<string, unknown>}
+ */
+export function redactUserPii(
+  user: Record<string, unknown>,
+  nowIso: string
+): Record<string, unknown> {
+  return {
+    ...user,
+    email: null,
+    phone: null,
+    displayName: "Redacted User",
+    updatedAt: nowIso,
   };
 }

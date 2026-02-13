@@ -390,7 +390,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - role check and purge behavior.
 
-75) PII purge: redaction logic
+75) ✓ PII purge: redaction logic
    - Redact PII fields while preserving audit log entries.
    - Unit tests:
      - redaction behavior leaves non-PII intact.
