@@ -405,7 +405,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Tests:
      - integration test for auto-advance precedence.
 
-78) Integration tests: totals and status
+78) ✓ Integration tests: totals and status
    - Totals and payment/pickup updates.
    - Tests:
      - integration test for totals and status updates.
