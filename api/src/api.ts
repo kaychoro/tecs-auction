@@ -101,6 +101,7 @@ export interface ApiDependencies {
         url: string;
         variants: Array<{width: number; url: string}>;
       } | null;
+      pickedUp?: boolean;
     }
   ) => Promise<ItemRecord | null>;
   deleteItem: (itemId: string) => Promise<boolean>;
@@ -237,6 +238,17 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
         deps,
         auctionPaymentRoute.auctionId,
         auctionPaymentRoute.bidderId
+      );
+      return;
+    }
+    const auctionPickupRoute = parseAuctionPickupRoute(req.path);
+    if (req.method === "PATCH" && auctionPickupRoute) {
+      await handlePatchAuctionPickup(
+        req,
+        res,
+        deps,
+        auctionPickupRoute.auctionId,
+        auctionPickupRoute.itemId
       );
       return;
     }
@@ -1028,6 +1040,68 @@ async function handlePatchAuctionPayment(
       paid,
     });
     res.status(200).json(updated);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles PATCH /auctions/:auctionId/pickup/:itemId.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ * @param {string} itemId
+ */
+async function handlePatchAuctionPickup(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role === "Bidder") {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for pickup updates"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const pickedUp = normalizeRequiredBoolean(body.pickedUp, "pickedUp");
+    const updated = await deps.updateItem(itemId, {pickedUp});
+    if (!updated) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    res.status(200).json({
+      itemId: updated.id,
+      pickedUp: Boolean(updated.pickedUp),
+    });
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1967,6 +2041,21 @@ function parseAuctionPaymentRoute(
     return null;
   }
   return {auctionId: match[1], bidderId: match[2]};
+}
+
+/**
+ * Parses params from /auctions/:auctionId/pickup/:itemId.
+ * @param {string} path
+ * @return {{auctionId: string, itemId: string}|null}
+ */
+function parseAuctionPickupRoute(
+  path: string
+): {auctionId: string; itemId: string} | null {
+  const match = /^\/auctions\/([^/]+)\/pickup\/([^/]+)$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return {auctionId: match[1], itemId: match[2]};
 }
 
 /**

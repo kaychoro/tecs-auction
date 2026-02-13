@@ -19,6 +19,7 @@ export interface ItemRecord {
   type: ItemType;
   startingPrice: number;
   image?: ItemImage | null;
+  pickedUp?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +31,7 @@ export interface CreateItemInput {
   type: ItemType;
   startingPrice: number;
   image?: ItemImage | null;
+  pickedUp?: boolean;
 }
 
 export interface UpdateItemInput {
@@ -38,6 +40,7 @@ export interface UpdateItemInput {
   type?: ItemType;
   startingPrice?: number;
   image?: ItemImage | null;
+  pickedUp?: boolean;
 }
 
 interface DocSnapshot<T> {
@@ -95,6 +98,7 @@ export class ItemsRepository {
       type: input.type,
       startingPrice: input.startingPrice,
       image: input.image || null,
+      pickedUp: input.pickedUp || false,
       createdAt: now,
       updatedAt: now,
     };

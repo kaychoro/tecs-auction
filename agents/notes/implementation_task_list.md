@@ -243,7 +243,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - payment status updates with role checks.
 
-46) Pickup status endpoint
+46) ✓ Pickup status endpoint
    - PATCH /api/auctions/{auctionId}/pickup/{itemId}.
    - Unit tests:
      - pickup status updates with role checks.
