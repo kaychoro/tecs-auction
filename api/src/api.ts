@@ -269,6 +269,11 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       );
       return;
     }
+    const auctionReportsRoute = parseAuctionReportsRoute(req.path);
+    if (req.method === "GET" && auctionReportsRoute) {
+      await handleGetAuctionReports(req, res, deps, auctionReportsRoute);
+      return;
+    }
 
     const auctionSwitchRoute = parseAuctionSwitchRoute(req.path);
     if (req.method === "POST" && auctionSwitchRoute) {
@@ -1123,6 +1128,83 @@ async function handlePatchAuctionPickup(
     res.status(200).json({
       itemId: updated.id,
       pickedUp: Boolean(updated.pickedUp),
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/:auctionId/reports.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionReports(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for report access"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const [items, totals, liveWinners] = await Promise.all([
+      deps.listItemsByAuction(auctionId),
+      deps.listTotalsForAuction(auctionId),
+      deps.listLiveWinnersForAuction(auctionId),
+    ]);
+
+    const silentItemHighBids = await Promise.all(
+      items
+        .filter((item) => item.type === "silent")
+        .map((item) => deps.getCurrentHighBid(item.id))
+    );
+    const silentSoldBids = silentItemHighBids
+      .filter((bid): bid is BidRecord => Boolean(bid));
+    const soldItemIds = new Set<string>();
+    let grossTotal = 0;
+
+    for (const bid of silentSoldBids) {
+      soldItemIds.add(bid.itemId);
+      grossTotal += bid.amount;
+    }
+    for (const winner of liveWinners) {
+      soldItemIds.add(winner.itemId);
+      grossTotal += winner.finalPrice;
+    }
+
+    res.status(200).json({
+      auctionId,
+      generatedAt: new Date().toISOString(),
+      totals: {
+        bidderCount: totals.length,
+        itemsCount: items.length,
+        itemsSoldCount: soldItemIds.size,
+        grossTotal,
+      },
     });
   } catch (error) {
     respondWithApiError(res, error);
@@ -2261,6 +2343,19 @@ function parseAuctionPickupRoute(
     return null;
   }
   return {auctionId: match[1], itemId: match[2]};
+}
+
+/**
+ * Parses auction ID from /auctions/:auctionId/reports.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionReportsRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/reports$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
 }
 
 /**

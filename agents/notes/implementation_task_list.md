@@ -255,7 +255,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - winner assignment validation.
      - phase and role checks.
 
-48) Reports summary endpoint
+48) ✓ Reports summary endpoint
    - GET /api/auctions/{auctionId}/reports (summary).
    - Unit tests:
      - report summary content.
