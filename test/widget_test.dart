@@ -174,6 +174,28 @@ void main() {
     expect(find.byKey(const Key('item_detail_error')), findsOneWidget);
     expect(find.text('Bid must be higher than current bid.'), findsOneWidget);
   });
+
+  testWidgets('receipt view shows totals in closed phase', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ReceiptScreen(
+          items: [
+            ReceiptLineItem(name: 'Gift Basket', amount: 90),
+            ReceiptLineItem(name: 'Art Class', amount: 120),
+          ],
+          subtotal: 210,
+          total: 210,
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('receipt_subtotal')), findsOneWidget);
+    expect(find.byKey(const Key('receipt_total')), findsOneWidget);
+    expect(find.text('Subtotal: \$210'), findsOneWidget);
+    expect(find.text('Total Due: \$210'), findsOneWidget);
+  });
 }
 
 void _noop() {}

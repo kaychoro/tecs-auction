@@ -28,6 +28,16 @@ class AuctionItemView {
   final int currentBid;
 }
 
+class ReceiptLineItem {
+  const ReceiptLineItem({
+    required this.name,
+    required this.amount,
+  });
+
+  final String name;
+  final int amount;
+}
+
 class AuctionApp extends StatefulWidget {
   const AuctionApp({super.key});
 
@@ -451,6 +461,59 @@ class ItemDetailScreen extends StatefulWidget {
 
   @override
   State<ItemDetailScreen> createState() => _ItemDetailScreenState();
+}
+
+class ReceiptScreen extends StatelessWidget {
+  const ReceiptScreen({
+    super.key,
+    required this.items,
+    required this.subtotal,
+    required this.total,
+  });
+
+  final List<ReceiptLineItem> items;
+  final int subtotal;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Receipt')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Auction Closed',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return ListTile(
+                    key: Key('receipt_item_$index'),
+                    title: Text(item.name),
+                    trailing: Text('\$${item.amount}'),
+                  );
+                },
+              ),
+            ),
+            Text('Subtotal: \$$subtotal', key: const Key('receipt_subtotal')),
+            const SizedBox(height: 6),
+            Text(
+              'Total Due: \$$total',
+              key: const Key('receipt_total'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {

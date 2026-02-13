@@ -310,7 +310,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for bid confirmation/error states.
 
-59) Frontend bidder: receipt view
+59) ✓ Frontend bidder: receipt view
    - Implement receipt view in Closed phase.
    - Unit tests:
      - widget tests for receipt totals display.
