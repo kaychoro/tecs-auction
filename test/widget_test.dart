@@ -196,7 +196,58 @@ void main() {
     expect(find.text('Subtotal: \$210'), findsOneWidget);
     expect(find.text('Total Due: \$210'), findsOneWidget);
   });
+
+  testWidgets('notifications deep-link to referenced item', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const _NotificationHarness());
+
+    expect(find.text('Opened item: none'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('notification_n1')));
+    await tester.pump();
+
+    expect(find.text('Opened item: i1'), findsOneWidget);
+  });
 }
 
 void _noop() {}
 void _onSelected(AuctionItemView _) {}
+
+class _NotificationHarness extends StatefulWidget {
+  const _NotificationHarness();
+
+  @override
+  State<_NotificationHarness> createState() => _NotificationHarnessState();
+}
+
+class _NotificationHarnessState extends State<_NotificationHarness> {
+  String _openedItemId = 'none';
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: NotificationsScreen(
+                notifications: const [
+                  BidderNotification(
+                    id: 'n1',
+                    message: 'You were outbid.',
+                    refItemId: 'i1',
+                  ),
+                ],
+                onOpenItem: (itemId) {
+                  setState(() => _openedItemId = itemId);
+                },
+                onRefresh: () {},
+              ),
+            ),
+            Text('Opened item: $_openedItemId'),
+          ],
+        ),
+      ),
+    );
+  }
+}

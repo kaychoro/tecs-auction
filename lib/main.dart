@@ -38,6 +38,18 @@ class ReceiptLineItem {
   final int amount;
 }
 
+class BidderNotification {
+  const BidderNotification({
+    required this.id,
+    required this.message,
+    required this.refItemId,
+  });
+
+  final String id;
+  final String message;
+  final String refItemId;
+}
+
 class AuctionApp extends StatefulWidget {
   const AuctionApp({super.key});
 
@@ -511,6 +523,47 @@ class ReceiptScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({
+    super.key,
+    required this.notifications,
+    required this.onOpenItem,
+    required this.onRefresh,
+  });
+
+  final List<BidderNotification> notifications;
+  final ValueChanged<String> onOpenItem;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        actions: [
+          IconButton(
+            key: const Key('notifications_refresh'),
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: ListView.builder(
+        itemCount: notifications.length,
+        itemBuilder: (context, index) {
+          final notification = notifications[index];
+          return ListTile(
+            key: Key('notification_${notification.id}'),
+            title: Text(notification.message),
+            subtitle: Text('Item: ${notification.refItemId}'),
+            onTap: () => onOpenItem(notification.refItemId),
+          );
+        },
       ),
     );
   }

@@ -315,7 +315,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for receipt totals display.
 
-60) Frontend bidder: notifications
+60) ✓ Frontend bidder: notifications
    - Implement notifications list with deep-link and refresh behavior.
    - Unit tests:
      - widget tests for notification deep-link routing.
