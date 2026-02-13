@@ -802,6 +802,46 @@ class AdminStatusUpdateScreen extends StatefulWidget {
   State<AdminStatusUpdateScreen> createState() => _AdminStatusUpdateScreenState();
 }
 
+class AdminReportsScreen extends StatelessWidget {
+  const AdminReportsScreen({
+    super.key,
+    required this.bidderCount,
+    required this.itemsCount,
+    required this.grossTotal,
+    required this.onExportCsv,
+  });
+
+  final int bidderCount;
+  final int itemsCount;
+  final int grossTotal;
+  final VoidCallback onExportCsv;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reports')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bidder count: $bidderCount'),
+            Text('Items count: $itemsCount'),
+            Text('Gross total: \$$grossTotal'),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('reports_export_csv'),
+              onPressed: onExportCsv,
+              icon: const Icon(Icons.download),
+              label: const Text('Export CSV'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminStatusUpdateScreenState extends State<AdminStatusUpdateScreen> {
   bool _paid = false;
   bool _pickedUp = false;

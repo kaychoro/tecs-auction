@@ -370,7 +370,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for payment/pickup update flows.
 
-71) Frontend admin: reports + CSV export
+71) ✓ Frontend admin: reports + CSV export
    - Implement report summary and CSV export UI actions.
    - Unit tests:
      - widget tests for export actions.

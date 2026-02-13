@@ -446,6 +446,27 @@ void main() {
     expect(find.byKey(const Key('status_saved_message')), findsOneWidget);
     expect(find.text('Saved: paid=true, pickedUp=true'), findsOneWidget);
   });
+
+  testWidgets('reports screen triggers CSV export action', (
+    WidgetTester tester,
+  ) async {
+    var exported = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminReportsScreen(
+          bidderCount: 10,
+          itemsCount: 25,
+          grossTotal: 2000,
+          onExportCsv: () => exported = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('reports_export_csv')));
+    await tester.pump();
+
+    expect(exported, true);
+  });
 }
 
 void _noop() {}
