@@ -223,7 +223,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
      - list returns sorted order and pagination.
      - mark-read updates read_at.
 
-42) Totals computation
+42) ✓ Totals computation
    - Totals store/recompute logic (invoice strategy).
    - Unit tests:
      - totals update on bid placement.
