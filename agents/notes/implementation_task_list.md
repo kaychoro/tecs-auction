@@ -300,7 +300,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for list rendering and empty state.
 
-57) Frontend bidder: item detail
+57) ✓ Frontend bidder: item detail
    - Implement auction item list and item detail with bid controls.
    - Unit tests:
      - widget tests for bid controls rendering and current bid display.

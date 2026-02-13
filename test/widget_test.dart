@@ -104,6 +104,7 @@ void main() {
             AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 90),
             AuctionItemView(id: 'i2', name: 'Art Class', currentBid: 120),
           ],
+          onSelect: _onSelected,
         ),
       ),
     );
@@ -116,13 +117,36 @@ void main() {
   testWidgets('item list shows empty state', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: ItemListScreen(items: []),
+        home: ItemListScreen(items: [], onSelect: _onSelected),
       ),
     );
 
     expect(find.byKey(const Key('items_empty_state')), findsOneWidget);
     expect(find.text('No items available'), findsOneWidget);
   });
+
+  testWidgets('item detail shows current bid and bid controls', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ItemDetailScreen(
+          item: AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 90),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('item_detail_current_bid')), findsOneWidget);
+    expect(find.text('Current bid: \$90'), findsOneWidget);
+    expect(find.byKey(const Key('item_detail_minus')), findsOneWidget);
+    expect(find.byKey(const Key('item_detail_plus')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('item_detail_plus')));
+    await tester.pump();
+
+    expect(find.text('Your bid: \$92'), findsOneWidget);
+  });
 }
 
 void _noop() {}
+void _onSelected(AuctionItemView _) {}

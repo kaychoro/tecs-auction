@@ -4,7 +4,7 @@ void main() {
   runApp(const AuctionApp());
 }
 
-enum BidderStage { registration, verification, join, itemList }
+enum BidderStage { registration, verification, join, itemList, itemDetail }
 
 class JoinedAuctionOption {
   const JoinedAuctionOption({
@@ -37,6 +37,7 @@ class AuctionApp extends StatefulWidget {
 
 class _AuctionAppState extends State<AuctionApp> {
   BidderStage _stage = BidderStage.registration;
+  AuctionItemView? _selectedItem;
 
   void _goToVerification() {
     setState(() => _stage = BidderStage.verification);
@@ -48,6 +49,13 @@ class _AuctionAppState extends State<AuctionApp> {
 
   void _goToItemList() {
     setState(() => _stage = BidderStage.itemList);
+  }
+
+  void _goToItemDetail(AuctionItemView item) {
+    setState(() {
+      _selectedItem = item;
+      _stage = BidderStage.itemDetail;
+    });
   }
 
   @override
@@ -67,12 +75,15 @@ class _AuctionAppState extends State<AuctionApp> {
           onJoined: _goToItemList,
         );
       case BidderStage.itemList:
-        screen = const ItemListScreen(
+        screen = ItemListScreen(
           items: [
             AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 85),
             AuctionItemView(id: 'i2', name: 'Principal for a Day', currentBid: 140),
           ],
+          onSelect: _goToItemDetail,
         );
+      case BidderStage.itemDetail:
+        screen = ItemDetailScreen(item: _selectedItem!);
     }
 
     return MaterialApp(
@@ -395,9 +406,11 @@ class ItemListScreen extends StatelessWidget {
   const ItemListScreen({
     super.key,
     required this.items,
+    required this.onSelect,
   });
 
   final List<AuctionItemView> items;
+  final ValueChanged<AuctionItemView> onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -420,9 +433,79 @@ class ItemListScreen extends StatelessWidget {
                   title: Text(item.name),
                   subtitle: Text('Current bid: \$${item.currentBid}'),
                   trailing: const Icon(Icons.chevron_right),
+                  onTap: () => onSelect(item),
                 );
               },
             ),
+    );
+  }
+}
+
+class ItemDetailScreen extends StatefulWidget {
+  const ItemDetailScreen({
+    super.key,
+    required this.item,
+  });
+
+  final AuctionItemView item;
+
+  @override
+  State<ItemDetailScreen> createState() => _ItemDetailScreenState();
+}
+
+class _ItemDetailScreenState extends State<ItemDetailScreen> {
+  late int _bidAmount;
+
+  @override
+  void initState() {
+    super.initState();
+    _bidAmount = widget.item.currentBid + 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.item.name)),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current bid: \$${widget.item.currentBid}',
+              key: const Key('item_detail_current_bid'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Your bid: \$$_bidAmount',
+              key: const Key('item_detail_bid_amount'),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton(
+                  key: const Key('item_detail_minus'),
+                  onPressed: () {
+                    setState(() {
+                      _bidAmount = _bidAmount > 1 ? _bidAmount - 1 : 1;
+                    });
+                  },
+                  child: const Text('-\$1'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  key: const Key('item_detail_plus'),
+                  onPressed: () {
+                    setState(() => _bidAmount += 1);
+                  },
+                  child: const Text('+\$1'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
