@@ -295,7 +295,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for switching and empty state.
 
-56) Frontend bidder: item list
+56) ✓ Frontend bidder: item list
    - Implement auction item list.
    - Unit tests:
      - widget tests for list rendering and empty state.

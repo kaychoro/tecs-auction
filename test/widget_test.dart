@@ -68,6 +68,7 @@ void main() {
             JoinedAuctionOption(id: 'a1', name: 'Spring Fundraiser'),
             JoinedAuctionOption(id: 'a2', name: 'Holiday Gala'),
           ],
+          onJoined: _noop,
         ),
       ),
     );
@@ -85,11 +86,43 @@ void main() {
   ) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: JoinAuctionScreen(joinedAuctions: []),
+        home: JoinAuctionScreen(joinedAuctions: [], onJoined: _noop),
       ),
     );
 
     expect(find.byKey(const Key('joined_empty_state')), findsOneWidget);
     expect(find.text('No joined auctions yet'), findsOneWidget);
   });
+
+  testWidgets('item list renders entries with current bid', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ItemListScreen(
+          items: [
+            AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 90),
+            AuctionItemView(id: 'i2', name: 'Art Class', currentBid: 120),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('item_tile_i1')), findsOneWidget);
+    expect(find.text('Gift Basket'), findsOneWidget);
+    expect(find.text('Current bid: \$90'), findsOneWidget);
+  });
+
+  testWidgets('item list shows empty state', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ItemListScreen(items: []),
+      ),
+    );
+
+    expect(find.byKey(const Key('items_empty_state')), findsOneWidget);
+    expect(find.text('No items available'), findsOneWidget);
+  });
 }
+
+void _noop() {}

@@ -4,7 +4,7 @@ void main() {
   runApp(const AuctionApp());
 }
 
-enum BidderStage { registration, verification, join }
+enum BidderStage { registration, verification, join, itemList }
 
 class JoinedAuctionOption {
   const JoinedAuctionOption({
@@ -14,6 +14,18 @@ class JoinedAuctionOption {
 
   final String id;
   final String name;
+}
+
+class AuctionItemView {
+  const AuctionItemView({
+    required this.id,
+    required this.name,
+    required this.currentBid,
+  });
+
+  final String id;
+  final String name;
+  final int currentBid;
 }
 
 class AuctionApp extends StatefulWidget {
@@ -34,6 +46,10 @@ class _AuctionAppState extends State<AuctionApp> {
     setState(() => _stage = BidderStage.join);
   }
 
+  void _goToItemList() {
+    setState(() => _stage = BidderStage.itemList);
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget screen;
@@ -43,10 +59,18 @@ class _AuctionAppState extends State<AuctionApp> {
       case BidderStage.verification:
         screen = VerificationScreen(onContinue: _goToJoin);
       case BidderStage.join:
-        screen = const JoinAuctionScreen(
+        screen = JoinAuctionScreen(
           joinedAuctions: [
             JoinedAuctionOption(id: 'a1', name: 'Spring Fundraiser'),
             JoinedAuctionOption(id: 'a2', name: 'Holiday Gala'),
+          ],
+          onJoined: _goToItemList,
+        );
+      case BidderStage.itemList:
+        screen = const ItemListScreen(
+          items: [
+            AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 85),
+            AuctionItemView(id: 'i2', name: 'Principal for a Day', currentBid: 140),
           ],
         );
     }
@@ -242,9 +266,11 @@ class JoinAuctionScreen extends StatefulWidget {
   const JoinAuctionScreen({
     super.key,
     required this.joinedAuctions,
+    required this.onJoined,
   });
 
   final List<JoinedAuctionOption> joinedAuctions;
+  final VoidCallback onJoined;
 
   @override
   State<JoinAuctionScreen> createState() => _JoinAuctionScreenState();
@@ -284,9 +310,7 @@ class _JoinAuctionScreenState extends State<JoinAuctionScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Auction joined successfully')),
-    );
+    widget.onJoined();
   }
 
   @override
@@ -363,6 +387,42 @@ class _JoinAuctionScreenState extends State<JoinAuctionScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class ItemListScreen extends StatelessWidget {
+  const ItemListScreen({
+    super.key,
+    required this.items,
+  });
+
+  final List<AuctionItemView> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Auction Items')),
+      body: items.isEmpty
+          ? const Center(
+              child: Text(
+                'No items available',
+                key: Key('items_empty_state'),
+              ),
+            )
+          : ListView.separated(
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const Divider(height: 0),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return ListTile(
+                  key: Key('item_tile_${item.id}'),
+                  title: Text(item.name),
+                  subtitle: Text('Current bid: \$${item.currentBid}'),
+                  trailing: const Icon(Icons.chevron_right),
+                );
+              },
+            ),
     );
   }
 }
