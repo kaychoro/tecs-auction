@@ -208,6 +208,27 @@ void main() {
 
     expect(find.text('Opened item: i1'), findsOneWidget);
   });
+
+  testWidgets('payment URL handling opens external link', (
+    WidgetTester tester,
+  ) async {
+    String? openedUrl;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PaymentLinkScreen(
+          paymentUrl: 'https://example.org/pay',
+          onOpenExternal: (url) => openedUrl = url,
+        ),
+      ),
+    );
+
+    expect(find.textContaining('close that tab'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('payment_open_button')));
+    await tester.pump();
+
+    expect(openedUrl, 'https://example.org/pay');
+  });
 }
 
 void _noop() {}

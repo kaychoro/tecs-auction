@@ -569,6 +569,49 @@ class NotificationsScreen extends StatelessWidget {
   }
 }
 
+class PaymentLinkScreen extends StatelessWidget {
+  const PaymentLinkScreen({
+    super.key,
+    required this.paymentUrl,
+    required this.onOpenExternal,
+  });
+
+  final String paymentUrl;
+  final ValueChanged<String> onOpenExternal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Payment')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Open payment in a new tab to complete checkout.',
+                ),
+                const SizedBox(height: 12),
+                const Text('After paying, close that tab to return here.'),
+                const SizedBox(height: 18),
+                FilledButton(
+                  key: const Key('payment_open_button'),
+                  onPressed: () => onOpenExternal(paymentUrl),
+                  child: const Text('Open Payment Page'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late int _bidAmount;
   String? _bidErrorCode;

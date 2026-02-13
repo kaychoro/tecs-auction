@@ -320,7 +320,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for notification deep-link routing.
 
-61) Frontend bidder: payment URL handling
+61) ✓ Frontend bidder: payment URL handling
    - Open payment URL in new tab/window and return by closing.
    - Unit tests:
      - widget tests for payment link behavior.
