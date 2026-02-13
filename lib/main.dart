@@ -721,6 +721,121 @@ class AdminMembershipAssignmentScreen extends StatefulWidget {
       _AdminMembershipAssignmentScreenState();
 }
 
+class AdminItemManagementScreen extends StatefulWidget {
+  const AdminItemManagementScreen({
+    super.key,
+    required this.items,
+  });
+
+  final List<AuctionItemView> items;
+
+  @override
+  State<AdminItemManagementScreen> createState() =>
+      _AdminItemManagementScreenState();
+}
+
+class _AdminItemManagementScreenState extends State<AdminItemManagementScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  String? _editingItemId;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  void _loadForEdit(AuctionItemView item) {
+    setState(() {
+      _editingItemId = item.id;
+      _nameController.text = item.name;
+      _priceController.text = item.currentBid.toString();
+    });
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _editingItemId == null ? 'Item created' : 'Item updated',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Item Management')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) {
+                  final item = widget.items[index];
+                  return ListTile(
+                    key: Key('admin_item_${item.id}'),
+                    title: Text(item.name),
+                    subtitle: Text('Starting price: \$${item.currentBid}'),
+                    onTap: () => _loadForEdit(item),
+                  );
+                },
+              ),
+            ),
+            const Divider(),
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    key: const Key('admin_item_name'),
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Item name'),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Item name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: const Key('admin_item_price'),
+                    controller: _priceController,
+                    decoration: const InputDecoration(labelText: 'Starting price'),
+                    validator: (value) {
+                      final parsed = int.tryParse((value ?? '').trim());
+                      if (parsed == null || parsed < 1) {
+                        return 'Enter a valid starting price';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    key: const Key('admin_item_save'),
+                    onPressed: _save,
+                    child: Text(_editingItemId == null ? 'Create' : 'Update'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminMembershipAssignmentScreenState
     extends State<AdminMembershipAssignmentScreen> {
   String? _selectedUser;

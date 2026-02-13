@@ -350,7 +350,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for role assignment flow.
 
-67) Frontend admin: item list + create/edit
+67) ✓ Frontend admin: item list + create/edit
    - Implement item management (CRUD + image upload).
    - Unit tests:
      - widget tests for item create/edit validations.

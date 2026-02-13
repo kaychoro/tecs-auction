@@ -356,6 +356,33 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('admin item management validates create and supports edit load', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminItemManagementScreen(
+          items: [
+            AuctionItemView(id: 'i1', name: 'Gift Basket', currentBid: 90),
+          ],
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('admin_item_save')));
+    await tester.pump();
+    expect(find.text('Item name is required'), findsOneWidget);
+    expect(find.text('Enter a valid starting price'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('admin_item_i1')));
+    await tester.pump();
+
+    final nameField = tester.widget<TextFormField>(
+      find.byKey(const Key('admin_item_name')),
+    );
+    expect(nameField.controller?.text, 'Gift Basket');
+  });
 }
 
 void _noop() {}
