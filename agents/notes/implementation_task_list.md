@@ -166,7 +166,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - delete permission checks.
 
-32) Image upload: storage
+32) ✓ Image upload: storage
    - Image upload endpoint with storage and metadata write.
    - Unit tests:
      - image upload rejects invalid size/type.

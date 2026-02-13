@@ -15,6 +15,7 @@ import {
 } from "./repositories/memberships.js";
 import {BidderNumberCountersRepository} from
   "./repositories/bidderNumberCounters.js";
+import {ImagesRepository, type ImageRecord} from "./repositories/images.js";
 import {ItemsRepository, type ItemRecord} from "./repositories/items.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
@@ -84,9 +85,22 @@ export interface ApiDependencies {
       description?: string | null;
       type?: "silent" | "live";
       startingPrice?: number;
+      image?: {
+        id: string;
+        url: string;
+        variants: Array<{width: number; url: string}>;
+      } | null;
     }
   ) => Promise<ItemRecord | null>;
   deleteItem: (itemId: string) => Promise<boolean>;
+  createImage: (input: {
+    auctionId: string;
+    itemId: string;
+    storagePath: string;
+    originalWidth: number;
+    originalHeight: number;
+    variants: Array<{width: number; url: string}>;
+  }) => Promise<ImageRecord>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -180,6 +194,10 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
 
     const itemId = parseItemId(req.path);
     if (itemId) {
+      if (req.method === "POST" && req.path.endsWith("/image")) {
+        await handlePostItemImage(req, res, deps, itemId);
+        return;
+      }
       if (req.method === "PATCH") {
         await handlePatchItem(req, res, deps, itemId);
         return;
@@ -1022,6 +1040,97 @@ async function handleDeleteItem(
 }
 
 /**
+ * Handles POST /items/:itemId/image.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handlePostItemImage(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for item image upload"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const contentType = normalizeRequiredString(
+      body.contentType,
+      "contentType"
+    );
+    const sizeBytes = normalizeRequiredMoneyNumber(body.sizeBytes, "sizeBytes");
+    if (!isSupportedImageContentType(contentType)) {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "Unsupported image content type"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+    if (sizeBytes > 10 * 1024 * 1024) {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "Image exceeds max allowed size"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+
+    const storagePath = normalizeRequiredString(
+      body.storagePath,
+      "storagePath"
+    );
+    const originalWidth = normalizeRequiredMoneyNumber(
+      body.originalWidth,
+      "originalWidth"
+    );
+    const originalHeight = normalizeRequiredMoneyNumber(
+      body.originalHeight,
+      "originalHeight"
+    );
+    const image = await deps.createImage({
+      auctionId: item.auctionId,
+      itemId,
+      storagePath,
+      originalWidth,
+      originalHeight,
+      variants: [],
+    });
+    await deps.updateItem(itemId, {
+      image: {id: image.id, url: image.storagePath, variants: []},
+    });
+
+    res.status(200).json(image);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -1229,7 +1338,7 @@ function parseAuctionNotificationsRoute(path: string): string | null {
  * @return {string|null}
  */
 function parseItemId(path: string): string | null {
-  const match = /^\/items\/([^/]+)$/.exec(path);
+  const match = /^\/items\/([^/]+)(?:\/image)?$/.exec(path);
   if (!match) {
     return null;
   }
@@ -1358,6 +1467,17 @@ function normalizeOptionalMoneyNumber(value: unknown): number | undefined {
 }
 
 /**
+ * Returns true when content type is an accepted image format.
+ * @param {string} contentType
+ * @return {boolean}
+ */
+function isSupportedImageContentType(contentType: string): boolean {
+  return contentType === "image/jpeg" ||
+    contentType === "image/png" ||
+    contentType === "image/webp";
+}
+
+/**
  * Validates and returns a required boolean field.
  * @param {unknown} value
  * @param {string} fieldName
@@ -1451,6 +1571,9 @@ function createDefaultDependencies(): ApiDependencies {
   const itemsRepo = new ItemsRepository(
     getFirestore().collection("items") as never
   );
+  const imagesRepo = new ImagesRepository(
+    getFirestore().collection("images") as never
+  );
   const bidderNumberRepo = new BidderNumberCountersRepository(
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
@@ -1541,6 +1664,7 @@ function createDefaultDependencies(): ApiDependencies {
     },
     updateItem: (itemId, updates) => itemsRepo.updateItem(itemId, updates),
     deleteItem: (itemId) => itemsRepo.deleteItem(itemId),
+    createImage: (input) => imagesRepo.createImage(input),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();
