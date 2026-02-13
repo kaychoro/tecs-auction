@@ -325,7 +325,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for payment link behavior.
 
-62) Frontend admin: auction list + create
+62) ✓ Frontend admin: auction list + create
    - Implement auction list and create screens.
    - Unit tests:
      - widget tests for list and create validation.

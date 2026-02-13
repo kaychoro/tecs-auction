@@ -612,6 +612,117 @@ class PaymentLinkScreen extends StatelessWidget {
   }
 }
 
+class AdminAuctionListCreateScreen extends StatefulWidget {
+  const AdminAuctionListCreateScreen({
+    super.key,
+    required this.auctions,
+  });
+
+  final List<JoinedAuctionOption> auctions;
+
+  @override
+  State<AdminAuctionListCreateScreen> createState() =>
+      _AdminAuctionListCreateScreenState();
+}
+
+class _AdminAuctionListCreateScreenState
+    extends State<AdminAuctionListCreateScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  void _createAuction() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Auction created')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Admin Auctions')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Auctions',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.auctions.length,
+                itemBuilder: (context, index) {
+                  final auction = widget.auctions[index];
+                  return ListTile(
+                    key: Key('admin_auction_${auction.id}'),
+                    title: Text(auction.name),
+                    subtitle: Text('ID: ${auction.id}'),
+                  );
+                },
+              ),
+            ),
+            const Divider(),
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    key: const Key('admin_create_name'),
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Auction name'),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Auction name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: const Key('admin_create_code'),
+                    controller: _codeController,
+                    decoration: const InputDecoration(labelText: 'Auction code'),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.length < 6) {
+                        return 'Auction code must be 6+ chars';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      key: const Key('admin_create_submit'),
+                      onPressed: _createAuction,
+                      child: const Text('Create Auction'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late int _bidAmount;
   String? _bidErrorCode;

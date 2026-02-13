@@ -229,6 +229,30 @@ void main() {
 
     expect(openedUrl, 'https://example.org/pay');
   });
+
+  testWidgets('admin auction list renders and create validates', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminAuctionListCreateScreen(
+          auctions: [
+            JoinedAuctionOption(id: 'a1', name: 'Spring Fundraiser'),
+            JoinedAuctionOption(id: 'a2', name: 'Holiday Gala'),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('admin_auction_a1')), findsOneWidget);
+    expect(find.byKey(const Key('admin_auction_a2')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('admin_create_submit')));
+    await tester.pump();
+
+    expect(find.text('Auction name is required'), findsOneWidget);
+    expect(find.text('Auction code must be 6+ chars'), findsOneWidget);
+  });
 }
 
 void _noop() {}
