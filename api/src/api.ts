@@ -415,7 +415,11 @@ async function handleGetUsersMe(
       return;
     }
 
-    res.status(200).json(user);
+    const sessionReturn = await resolveSessionReturn(user, deps);
+    res.status(200).json({
+      ...user,
+      sessionReturn,
+    });
   } catch (error) {
     if (isApiErrorResponse(error)) {
       res.status(error.status).json(error.body);
@@ -429,6 +433,67 @@ async function handleGetUsersMe(
     );
     res.status(internalError.status).json(internalError.body);
   }
+}
+
+interface SessionReturnRecommendation {
+  action: "resume" | "join_or_switch";
+  auctionId: string | null;
+  reason:
+    | "ready"
+    | "last_auction_missing"
+    | "membership_revoked"
+    | "auction_closed";
+}
+
+/**
+ * Resolves login/session fallback behavior for the current user.
+ * @param {UserRecord} user
+ * @param {ApiDependencies} deps
+ * @return {Promise<SessionReturnRecommendation>}
+ */
+async function resolveSessionReturn(
+  user: UserRecord,
+  deps: ApiDependencies
+): Promise<SessionReturnRecommendation> {
+  if (!user.lastAuctionId) {
+    return {
+      action: "join_or_switch",
+      auctionId: null,
+      reason: "last_auction_missing",
+    };
+  }
+
+  if (!deps.getMembership || !deps.getAuctionById) {
+    return {
+      action: "resume",
+      auctionId: user.lastAuctionId,
+      reason: "ready",
+    };
+  }
+
+  const membership = await deps.getMembership(user.lastAuctionId, user.id);
+  if (!membership || membership.status !== "active") {
+    return {
+      action: "join_or_switch",
+      auctionId: null,
+      reason: "membership_revoked",
+    };
+  }
+
+  const auction = await deps.getAuctionById(user.lastAuctionId);
+  if (!auction || auction.status === "Closed") {
+    return {
+      action: "join_or_switch",
+      auctionId: null,
+      reason: "auction_closed",
+    };
+  }
+
+  return {
+    action: "resume",
+    auctionId: user.lastAuctionId,
+    reason: "ready",
+  };
 }
 
 /**

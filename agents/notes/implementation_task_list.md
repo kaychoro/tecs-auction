@@ -275,7 +275,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - PDF contains one item per page.
 
-52) Session return fallback
+52) ✓ Session return fallback
    - Implement fallback to join/switch if closed/revoked.
    - Unit tests:
      - fallback path when auction is closed.
