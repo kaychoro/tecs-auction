@@ -218,6 +218,12 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       return;
     }
 
+    const auctionTotalsMeRoute = parseAuctionTotalsMeRoute(req.path);
+    if (req.method === "GET" && auctionTotalsMeRoute) {
+      await handleGetAuctionTotalsMe(req, res, deps, auctionTotalsMeRoute);
+      return;
+    }
+
     const auctionSwitchRoute = parseAuctionSwitchRoute(req.path);
     if (req.method === "POST" && auctionSwitchRoute) {
       await handlePostAuctionSwitch(req, res, deps, auctionSwitchRoute);
@@ -841,6 +847,52 @@ async function handlePostAuctionJoin(
       bidderNumber: membership.bidderNumber || null,
       roleOverride: membership.roleOverride || null,
     });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/:auctionId/totals/me.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionTotalsMe(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const totals = await deps.getTotals(auctionId, actor.id);
+    res.status(200).json(
+      totals || {
+        auctionId,
+        bidderId: actor.id,
+        bidderNumber: 0,
+        displayName: actor.displayName || actor.id,
+        subtotal: 0,
+        total: 0,
+        paid: false,
+        updatedAt: new Date().toISOString(),
+      }
+    );
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1735,6 +1787,19 @@ function parseAuctionJoinRoute(path: string): string | null {
  */
 function parseAuctionSwitchRoute(path: string): string | null {
   const match = /^\/auctions\/([^/]+)\/switch$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
+ * Parses auction ID from /auctions/:auctionId/totals/me.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionTotalsMeRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/totals\/me$/.exec(path);
   if (!match) {
     return null;
   }

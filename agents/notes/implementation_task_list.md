@@ -228,7 +228,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - totals update on bid placement.
 
-43) Totals endpoint: bidder view
+43) ✓ Totals endpoint: bidder view
    - GET /api/auctions/{auctionId}/totals/me.
    - Unit tests:
      - bidder totals shape and access rules.
