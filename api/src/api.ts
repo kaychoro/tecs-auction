@@ -30,6 +30,15 @@ import {
 import {TotalsRepository, type TotalsRecord} from "./repositories/totals.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
+export interface LiveWinnerRecord {
+  id: string;
+  auctionId: string;
+  itemId: string;
+  bidderId: string | null;
+  finalPrice: number;
+  assignedAt: string;
+}
+
 export interface ApiDependencies {
   authenticate:
     (authorizationHeader: string | undefined) => Promise<{uid: string}>;
@@ -123,6 +132,14 @@ export interface ApiDependencies {
   getBidById: (bidId: string) => Promise<BidRecord | null>;
   deleteBid: (bidId: string) => Promise<boolean>;
   getCurrentHighBid: (itemId: string) => Promise<BidRecord | null>;
+  getLiveWinnerByItemId: (itemId: string) => Promise<LiveWinnerRecord | null>;
+  upsertLiveWinner: (input: {
+    auctionId: string;
+    itemId: string;
+    bidderId: string | null;
+    finalPrice: number;
+  }) => Promise<LiveWinnerRecord>;
+  listLiveWinnersForAuction: (auctionId: string) => Promise<LiveWinnerRecord[]>;
   createAuditLog: (input: {
     auctionId: string;
     actorUserId: string;
@@ -305,6 +322,11 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
     }
 
     const itemId = parseItemId(req.path);
+    const itemWinnerRoute = parseItemWinnerRoute(req.path);
+    if (req.method === "POST" && itemWinnerRoute) {
+      await handlePostItemWinner(req, res, deps, itemWinnerRoute);
+      return;
+    }
     if (itemId) {
       if (req.method === "POST" && req.path.endsWith("/bids")) {
         await handlePostItemBids(req, res, deps, itemId);
@@ -1102,6 +1124,180 @@ async function handlePatchAuctionPickup(
       itemId: updated.id,
       pickedUp: Boolean(updated.pickedUp),
     });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles POST /items/:itemId/winner.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handlePostItemWinner(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for winner assignment"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    if (item.type !== "live") {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "Winner assignment is only allowed for live items"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const adminMembership = await deps.getMembership(
+        item.auctionId,
+        actor.id
+      );
+      if (!adminMembership || adminMembership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const auction = await deps.getAuctionById(item.auctionId);
+    if (!auction) {
+      const notFound = buildErrorResponse(
+        404,
+        "auction_not_found",
+        "Auction not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+    if (!isPendingOrLater(auction.status)) {
+      const phaseClosed = buildErrorResponse(
+        409,
+        "phase_closed",
+        "Winner assignment is not available in this phase"
+      );
+      res.status(phaseClosed.status).json(phaseClosed.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const finalPrice = normalizeRequiredMoneyNumber(
+      body.finalPrice,
+      "finalPrice"
+    );
+    const bidderId = normalizeNullableString(body.bidderId);
+    if (typeof bidderId === "undefined") {
+      throw buildErrorResponse(
+        400,
+        "validation_error",
+        "Field 'bidderId' must be a string or null"
+      );
+    }
+
+    let winningMembership: MembershipRecord | null = null;
+    if (bidderId) {
+      winningMembership = await deps.getMembership(item.auctionId, bidderId);
+      if (!winningMembership || winningMembership.status !== "active") {
+        const invalid = buildErrorResponse(
+          400,
+          "validation_error",
+          "Winning bidder must be an active auction member"
+        );
+        res.status(invalid.status).json(invalid.body);
+        return;
+      }
+    }
+
+    const previousWinner = await deps.getLiveWinnerByItemId(item.id);
+    if (previousWinner?.bidderId) {
+      const previousTotals = await deps.getTotals(
+        item.auctionId,
+        previousWinner.bidderId
+      );
+      if (previousTotals) {
+        await deps.upsertTotals({
+          auctionId: previousTotals.auctionId,
+          bidderId: previousTotals.bidderId,
+          bidderNumber: previousTotals.bidderNumber,
+          displayName: previousTotals.displayName,
+          subtotal: Math.max(
+            0,
+            previousTotals.subtotal - previousWinner.finalPrice
+          ),
+          total: Math.max(0, previousTotals.total - previousWinner.finalPrice),
+          paid: previousTotals.paid,
+        });
+      }
+    }
+
+    const winner = await deps.upsertLiveWinner({
+      auctionId: item.auctionId,
+      itemId: item.id,
+      bidderId: bidderId || null,
+      finalPrice,
+    });
+
+    if (winner.bidderId) {
+      const winningUser = await deps.getUserById(winner.bidderId);
+      const winningTotals = await deps.getTotals(
+        item.auctionId,
+        winner.bidderId
+      );
+      await deps.upsertTotals({
+        auctionId: item.auctionId,
+        bidderId: winner.bidderId,
+        bidderNumber: winningMembership?.bidderNumber || 0,
+        displayName: winningUser?.displayName || winner.bidderId,
+        subtotal: (winningTotals?.subtotal || 0) + winner.finalPrice,
+        total: (winningTotals?.total || 0) + winner.finalPrice,
+        paid: winningTotals?.paid || false,
+      });
+    }
+
+    await deps.createAuditLog({
+      auctionId: item.auctionId,
+      actorUserId: actor.id,
+      action: "live_winner_assigned",
+      targetType: "item",
+      targetId: item.id,
+      metadata: {
+        bidderId: winner.bidderId,
+        finalPrice: winner.finalPrice,
+      },
+    });
+
+    res.status(200).json(winner);
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -1964,6 +2160,15 @@ function canManageItems(role: AuthenticatedActor["role"]): boolean {
 }
 
 /**
+ * Returns true when phase is Pending, Complete, or Closed.
+ * @param {AuctionStatus} status
+ * @return {boolean}
+ */
+function isPendingOrLater(status: AuctionStatus): boolean {
+  return status === "Pending" || status === "Complete" || status === "Closed";
+}
+
+/**
  * Parses auction ID from /auctions/:auctionId route paths.
  * @param {string} path
  * @return {string|null}
@@ -2104,6 +2309,19 @@ function parseAuctionPhaseRoute(path: string): string | null {
  */
 function parseAuctionNotificationsRoute(path: string): string | null {
   const match = /^\/auctions\/([^/]+)\/notifications$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
+ * Parses item ID from /items/:itemId/winner.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseItemWinnerRoute(path: string): string | null {
+  const match = /^\/items\/([^/]+)\/winner$/.exec(path);
   if (!match) {
     return null;
   }
@@ -2551,6 +2769,39 @@ function createDefaultDependencies(): ApiDependencies {
       return true;
     },
     getCurrentHighBid: (itemId) => bidViewsRepo.getCurrentHighBid(itemId),
+    getLiveWinnerByItemId: async (itemId: string) => {
+      const snapshot = await getFirestore()
+        .collection("live_winners")
+        .doc(itemId)
+        .get();
+      if (!snapshot.exists) {
+        return null;
+      }
+      return snapshot.data() as LiveWinnerRecord;
+    },
+    upsertLiveWinner: async (input) => {
+      const now = new Date().toISOString();
+      const record: LiveWinnerRecord = {
+        id: input.itemId,
+        auctionId: input.auctionId,
+        itemId: input.itemId,
+        bidderId: input.bidderId,
+        finalPrice: input.finalPrice,
+        assignedAt: now,
+      };
+      await getFirestore()
+        .collection("live_winners")
+        .doc(input.itemId)
+        .set(record);
+      return record;
+    },
+    listLiveWinnersForAuction: async (auctionId: string) => {
+      const snapshot = await getFirestore()
+        .collection("live_winners")
+        .where("auctionId", "==", auctionId)
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as LiveWinnerRecord);
+    },
     createAuditLog: (input) => auditLogsRepo.createAuditLog(input),
     getTotals: (auctionId, bidderId) =>
       totalsRepo.getTotals(auctionId, bidderId),

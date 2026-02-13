@@ -248,7 +248,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - pickup status updates with role checks.
 
-47) Live winner assignment
+47) ✓ Live winner assignment
    - POST /api/items/{itemId}/winner (Pending+).
    - Update totals and audit log.
    - Unit tests:
