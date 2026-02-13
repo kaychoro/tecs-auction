@@ -260,7 +260,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - report summary content.
 
-49) Reports CSV export endpoint
+49) ✓ Reports CSV export endpoint
    - GET /api/auctions/{auctionId}/reports/export?format=csv.
    - Unit tests:
      - export permission (L1/L2 only).

@@ -274,6 +274,16 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       await handleGetAuctionReports(req, res, deps, auctionReportsRoute);
       return;
     }
+    const auctionReportsExportRoute = parseAuctionReportsExportRoute(req.path);
+    if (req.method === "GET" && auctionReportsExportRoute) {
+      await handleGetAuctionReportsExport(
+        req,
+        res,
+        deps,
+        auctionReportsExportRoute
+      );
+      return;
+    }
 
     const auctionSwitchRoute = parseAuctionSwitchRoute(req.path);
     if (req.method === "POST" && auctionSwitchRoute) {
@@ -1206,6 +1216,82 @@ async function handleGetAuctionReports(
         grossTotal,
       },
     });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/:auctionId/reports/export?format=csv.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionReportsExport(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for report export"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const format = normalizeOptionalString((req.query as {format?: unknown})
+      ?.format);
+    if (format !== "csv") {
+      const validation = buildErrorResponse(
+        400,
+        "validation_error",
+        "Only format=csv is supported"
+      );
+      res.status(validation.status).json(validation.body);
+      return;
+    }
+
+    const totals = await deps.listTotalsForAuction(auctionId);
+    const sorted = [...totals].sort((left, right) =>
+      left.bidderNumber - right.bidderNumber
+    );
+    const header = "bidderId,bidderNumber,displayName,subtotal,total,paid";
+    const rows = sorted.map((record) =>
+      [
+        csvEscape(record.bidderId),
+        String(record.bidderNumber),
+        csvEscape(record.displayName),
+        String(record.subtotal),
+        String(record.total),
+        String(record.paid),
+      ].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    res.set("Content-Type", "text/csv; charset=utf-8");
+    res.set(
+      "Content-Disposition",
+      `attachment; filename="auction-${auctionId}-totals.csv"`
+    );
+    res.status(200).send(csv);
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -2359,6 +2445,19 @@ function parseAuctionReportsRoute(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/reports/export.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionReportsExportRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/reports\/export$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Parses auction ID from /auctions/:auctionId/items route paths.
  * @param {string} path
  * @return {string|null}
@@ -2640,6 +2739,18 @@ function parsePositiveInt(value: unknown, fallback: number): number {
     }
   }
   return fallback;
+}
+
+/**
+ * Escapes a value for CSV output.
+ * @param {string} value
+ * @return {string}
+ */
+function csvEscape(value: string): string {
+  if (!value.includes("\"") && !value.includes(",") && !value.includes("\n")) {
+    return value;
+  }
+  return `"${value.replace(/"/g, "\"\"")}"`;
 }
 
 /**
