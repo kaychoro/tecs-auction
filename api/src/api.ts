@@ -284,6 +284,11 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
       );
       return;
     }
+    const auctionItemsQrPdfRoute = parseAuctionItemsQrPdfRoute(req.path);
+    if (req.method === "GET" && auctionItemsQrPdfRoute) {
+      await handleGetAuctionItemsQrPdf(req, res, deps, auctionItemsQrPdfRoute);
+      return;
+    }
 
     const auctionSwitchRoute = parseAuctionSwitchRoute(req.path);
     if (req.method === "POST" && auctionSwitchRoute) {
@@ -1297,6 +1302,57 @@ async function handleGetAuctionReportsExport(
       `attachment; filename="auction-${auctionId}-totals.csv"`
     );
     res.status(200).send(csv);
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
+ * Handles GET /auctions/:auctionId/items/qr-pdf.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} auctionId
+ */
+async function handleGetAuctionItemsQrPdf(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  auctionId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    if (!canManageItems(actor.role)) {
+      const forbidden = buildErrorResponse(
+        403,
+        "role_forbidden",
+        "Insufficient role for QR PDF generation"
+      );
+      res.status(forbidden.status).json(forbidden.body);
+      return;
+    }
+
+    if (actor.role !== "AdminL1") {
+      const membership = await deps.getMembership(auctionId, actor.id);
+      if (!membership || membership.status !== "active") {
+        const forbidden = buildErrorResponse(
+          403,
+          "role_forbidden",
+          "User does not have access to this auction"
+        );
+        res.status(forbidden.status).json(forbidden.body);
+        return;
+      }
+    }
+
+    const items = await deps.listItemsByAuction(auctionId);
+    const pdfPayload = buildQrPdfPayload(items);
+    res.set("Content-Type", "application/pdf");
+    res.set(
+      "Content-Disposition",
+      `attachment; filename="auction-${auctionId}-items-qr.pdf"`
+    );
+    res.status(200).send(pdfPayload);
   } catch (error) {
     respondWithApiError(res, error);
   }
@@ -2511,6 +2567,19 @@ function parseAuctionReportsExportRoute(path: string): string | null {
 }
 
 /**
+ * Parses auction ID from /auctions/:auctionId/items/qr-pdf.
+ * @param {string} path
+ * @return {string|null}
+ */
+function parseAuctionItemsQrPdfRoute(path: string): string | null {
+  const match = /^\/auctions\/([^/]+)\/items\/qr-pdf$/.exec(path);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+/**
  * Parses auction ID from /auctions/:auctionId/items route paths.
  * @param {string} path
  * @return {string|null}
@@ -2823,6 +2892,22 @@ function buildItemDeepLink(itemId: string): string {
  */
 function buildQrPngPayload(deepLink: string): Buffer {
   return Buffer.from(`PNG_QR_PLACEHOLDER:${deepLink}`, "utf8");
+}
+
+/**
+ * Creates a deterministic PDF payload with one page marker per item.
+ * @param {ItemRecord[]} items
+ * @return {Buffer}
+ */
+function buildQrPdfPayload(items: ItemRecord[]): Buffer {
+  const lines = ["%PDF-1.4"];
+  items.forEach((item, index) => {
+    lines.push(`%%Page: ${index + 1}`);
+    lines.push(`ITEM:${item.id}`);
+    lines.push(`LINK:${buildItemDeepLink(item.id)}`);
+  });
+  lines.push("%%EOF");
+  return Buffer.from(lines.join("\n"), "utf8");
 }
 
 /**

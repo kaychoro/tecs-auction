@@ -270,7 +270,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - QR encodes correct item deep link.
 
-51) QR PDF endpoint
+51) ✓ QR PDF endpoint
    - GET /api/auctions/{auctionId}/items/qr-pdf (application/pdf).
    - Unit tests:
      - PDF contains one item per page.
