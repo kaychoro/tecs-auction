@@ -695,6 +695,70 @@ class AdminPhaseOverrideScreen extends StatefulWidget {
       _AdminPhaseOverrideScreenState();
 }
 
+class AdminNotificationSettingsScreen extends StatefulWidget {
+  const AdminNotificationSettingsScreen({
+    super.key,
+    required this.initialInAppEnabled,
+  });
+
+  final bool initialInAppEnabled;
+
+  @override
+  State<AdminNotificationSettingsScreen> createState() =>
+      _AdminNotificationSettingsScreenState();
+}
+
+class _AdminNotificationSettingsScreenState
+    extends State<AdminNotificationSettingsScreen> {
+  late bool _inAppEnabled;
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _inAppEnabled = widget.initialInAppEnabled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notification Settings')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            SwitchListTile(
+              key: const Key('notifications_toggle'),
+              title: const Text('Enable in-app outbid notifications'),
+              value: _inAppEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _saved = false;
+                  _inAppEnabled = value;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              key: const Key('notifications_save'),
+              onPressed: () {
+                setState(() => _saved = true);
+              },
+              child: const Text('Save'),
+            ),
+            const SizedBox(height: 12),
+            if (_saved)
+              const Text(
+                'Settings saved',
+                key: Key('notifications_saved_message'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminPhaseOverrideScreenState extends State<AdminPhaseOverrideScreen> {
   late String _phase;
   static const List<String> _phases = [

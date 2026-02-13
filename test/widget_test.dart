@@ -294,6 +294,37 @@ void main() {
     );
     expect(applyButton.onPressed, isNull);
   });
+
+  testWidgets('notification settings toggle and save works', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminNotificationSettingsScreen(initialInAppEnabled: true),
+      ),
+    );
+
+    final beforeToggle = tester.widget<SwitchListTile>(
+      find.byKey(const Key('notifications_toggle')),
+    );
+    expect(beforeToggle.value, true);
+
+    await tester.tap(find.byKey(const Key('notifications_toggle')));
+    await tester.pump();
+
+    final afterToggle = tester.widget<SwitchListTile>(
+      find.byKey(const Key('notifications_toggle')),
+    );
+    expect(afterToggle.value, false);
+
+    await tester.tap(find.byKey(const Key('notifications_save')));
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('notifications_saved_message')),
+      findsOneWidget,
+    );
+  });
 }
 
 void _noop() {}

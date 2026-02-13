@@ -340,7 +340,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for role-gated override screen.
 
-65) Frontend admin: notification settings
+65) ✓ Frontend admin: notification settings
    - Implement in-app notification toggle per auction.
    - Unit tests:
      - widget tests for toggle behavior and save.
