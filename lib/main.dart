@@ -4,11 +4,38 @@ void main() {
   runApp(const AuctionApp());
 }
 
-class AuctionApp extends StatelessWidget {
+enum BidderStage { registration, verification, join }
+
+class AuctionApp extends StatefulWidget {
   const AuctionApp({super.key});
 
   @override
+  State<AuctionApp> createState() => _AuctionAppState();
+}
+
+class _AuctionAppState extends State<AuctionApp> {
+  BidderStage _stage = BidderStage.registration;
+
+  void _goToVerification() {
+    setState(() => _stage = BidderStage.verification);
+  }
+
+  void _goToJoin() {
+    setState(() => _stage = BidderStage.join);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    Widget screen;
+    switch (_stage) {
+      case BidderStage.registration:
+        screen = RegistrationScreen(onContinue: _goToVerification);
+      case BidderStage.verification:
+        screen = VerificationScreen(onContinue: _goToJoin);
+      case BidderStage.join:
+        screen = const JoinAuctionScreen();
+    }
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'TECS Auction',
@@ -19,13 +46,15 @@ class AuctionApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const RegistrationScreen(),
+      home: screen,
     );
   }
 }
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+  const RegistrationScreen({super.key, required this.onContinue});
+
+  final VoidCallback onContinue;
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -83,9 +112,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registration details saved')),
-    );
+    widget.onContinue();
   }
 
   @override
@@ -131,6 +158,135 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     key: const Key('registration_submit'),
                     onPressed: _submit,
                     child: const Text('Continue'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class VerificationScreen extends StatelessWidget {
+  const VerificationScreen({super.key, required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Verify Email')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verification Required',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Please verify your email address before joining an auction.',
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  key: const Key('verification_status_badge'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F2F1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text('Status: Verified'),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  key: const Key('verification_continue'),
+                  onPressed: onContinue,
+                  child: const Text('Join Auction'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class JoinAuctionScreen extends StatefulWidget {
+  const JoinAuctionScreen({super.key});
+
+  @override
+  State<JoinAuctionScreen> createState() => _JoinAuctionScreenState();
+}
+
+class _JoinAuctionScreenState extends State<JoinAuctionScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  String? _validateCode(String? value) {
+    final text = (value ?? '').trim().toUpperCase();
+    if (text.isEmpty) {
+      return 'Auction code is required';
+    }
+    if (text.length < 6) {
+      return 'Enter a 6-character code';
+    }
+    return null;
+  }
+
+  void _submitJoin() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Auction joined successfully')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Join Auction')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    key: const Key('join_code'),
+                    controller: _codeController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(labelText: 'Auction code'),
+                    validator: _validateCode,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    key: const Key('join_submit'),
+                    onPressed: _submitJoin,
+                    child: const Text('Join'),
                   ),
                 ],
               ),

@@ -285,7 +285,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for validation errors.
 
-54) Frontend bidder: verification + join screens
+54) ✓ Frontend bidder: verification + join screens
    - Implement registration, verification, and auction join screens.
    - Unit tests:
      - widget tests for verification state and join flow validation.
