@@ -17,6 +17,8 @@ import {BidderNumberCountersRepository} from
   "./repositories/bidderNumberCounters.js";
 import {ImagesRepository, type ImageRecord} from "./repositories/images.js";
 import {ItemsRepository, type ItemRecord} from "./repositories/items.js";
+import {BidsRepository, type BidRecord} from "./repositories/bids.js";
+import {BidViewsRepository} from "./repositories/bidViews.js";
 import {UsersRepository, type UserRecord} from "./repositories/users.js";
 
 export interface ApiDependencies {
@@ -101,6 +103,13 @@ export interface ApiDependencies {
     originalHeight: number;
     variants: Array<{width: number; url: string}>;
   }) => Promise<ImageRecord>;
+  createBid: (input: {
+    auctionId: string;
+    itemId: string;
+    bidderId: string;
+    amount: number;
+  }) => Promise<BidRecord>;
+  getCurrentHighBid: (itemId: string) => Promise<BidRecord | null>;
   listAuctionsForActor: (actor: AuthenticatedActor) => Promise<AuctionRecord[]>;
   listJoinedAuctionsForUser: (userId: string) => Promise<AuctionRecord[]>;
   getAuctionById: (auctionId: string) => Promise<AuctionRecord | null>;
@@ -194,6 +203,10 @@ export function createApiHandler(providedDeps?: ApiDependencies) {
 
     const itemId = parseItemId(req.path);
     if (itemId) {
+      if (req.method === "POST" && req.path.endsWith("/bids")) {
+        await handlePostItemBids(req, res, deps, itemId);
+        return;
+      }
       if (req.method === "POST" && req.path.endsWith("/image")) {
         await handlePostItemImage(req, res, deps, itemId);
         return;
@@ -1135,6 +1148,51 @@ async function handlePostItemImage(
 }
 
 /**
+ * Handles POST /items/:itemId/bids.
+ * @param {Request} req
+ * @param {Response} res
+ * @param {ApiDependencies} deps
+ * @param {string} itemId
+ */
+async function handlePostItemBids(
+  req: Request,
+  res: Response,
+  deps: ApiDependencies,
+  itemId: string
+): Promise<void> {
+  try {
+    const actor = await getAuthenticatedActor(req, deps);
+    const item = await deps.getItemById(itemId);
+    if (!item) {
+      const notFound = buildErrorResponse(
+        404,
+        "item_not_found",
+        "Item not found"
+      );
+      res.status(notFound.status).json(notFound.body);
+      return;
+    }
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const amount = normalizeRequiredMoneyNumber(body.amount, "amount");
+    const bid = await deps.createBid({
+      auctionId: item.auctionId,
+      itemId: item.id,
+      bidderId: actor.id,
+      amount,
+    });
+    const currentHighBid = await deps.getCurrentHighBid(itemId);
+
+    res.status(200).json({
+      bid,
+      currentHighBid,
+    });
+  } catch (error) {
+    respondWithApiError(res, error);
+  }
+}
+
+/**
  * Handles GET /auctions/:auctionId.
  * @param {Request} req
  * @param {Response} res
@@ -1342,7 +1400,7 @@ function parseAuctionNotificationsRoute(path: string): string | null {
  * @return {string|null}
  */
 function parseItemId(path: string): string | null {
-  const match = /^\/items\/([^/]+)(?:\/image)?$/.exec(path);
+  const match = /^\/items\/([^/]+)(?:\/image|\/bids)?$/.exec(path);
   if (!match) {
     return null;
   }
@@ -1593,6 +1651,23 @@ function createDefaultDependencies(): ApiDependencies {
   const imagesRepo = new ImagesRepository(
     getFirestore().collection("images") as never
   );
+  const bidsRepo = new BidsRepository(
+    getFirestore().collection("bids") as never,
+    (handler) => getFirestore().runTransaction(async (tx) => {
+      return handler({
+        set: (docRef, value) => tx.set(docRef as never, value as never),
+      });
+    })
+  );
+  const bidViewsRepo = new BidViewsRepository({
+    listBids: async (itemId: string) => {
+      const snapshot = await getFirestore()
+        .collection("bids")
+        .where("itemId", "==", itemId)
+        .get();
+      return snapshot.docs.map((doc) => doc.data() as BidRecord);
+    },
+  });
   const bidderNumberRepo = new BidderNumberCountersRepository(
     getFirestore() as never,
     getFirestore().collection("auction_bidder_counters") as never
@@ -1684,6 +1759,8 @@ function createDefaultDependencies(): ApiDependencies {
     updateItem: (itemId, updates) => itemsRepo.updateItem(itemId, updates),
     deleteItem: (itemId) => itemsRepo.deleteItem(itemId),
     createImage: (input) => imagesRepo.createImage(input),
+    createBid: (input) => bidsRepo.createBid(input),
+    getCurrentHighBid: (itemId) => bidViewsRepo.getCurrentHighBid(itemId),
     listAuctionsForActor: async (actor: AuthenticatedActor) => {
       if (actor.role === "AdminL1") {
         const snapshot = await getFirestore().collection("auctions").get();

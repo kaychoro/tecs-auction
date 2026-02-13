@@ -176,7 +176,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - image variant metadata stored correctly.
 
-34) Bidding API: transaction ordering
+34) ✓ Bidding API: transaction ordering
    - POST /api/items/{itemId}/bids with transaction ordering.
    - Unit tests:
      - bid accepted (first bid, higher bid).
