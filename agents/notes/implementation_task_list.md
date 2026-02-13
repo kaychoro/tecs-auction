@@ -335,7 +335,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - widget tests for role-gated edit screen.
 
-64) Frontend admin: phase override
+64) ✓ Frontend admin: phase override
    - Implement phase override UI.
    - Unit tests:
      - widget tests for role-gated override screen.

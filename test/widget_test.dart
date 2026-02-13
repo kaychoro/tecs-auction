@@ -278,6 +278,22 @@ void main() {
     );
     expect(saveButton.onPressed, isNull);
   });
+
+  testWidgets('phase override screen is role-gated', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AdminPhaseOverrideScreen(
+          canOverride: false,
+          currentPhase: 'Open',
+        ),
+      ),
+    );
+
+    final applyButton = tester.widget<FilledButton>(
+      find.byKey(const Key('phase_override_apply')),
+    );
+    expect(applyButton.onPressed, isNull);
+  });
 }
 
 void _noop() {}

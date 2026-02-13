@@ -680,6 +680,78 @@ class AdminAuctionEditScreen extends StatelessWidget {
   }
 }
 
+class AdminPhaseOverrideScreen extends StatefulWidget {
+  const AdminPhaseOverrideScreen({
+    super.key,
+    required this.canOverride,
+    required this.currentPhase,
+  });
+
+  final bool canOverride;
+  final String currentPhase;
+
+  @override
+  State<AdminPhaseOverrideScreen> createState() =>
+      _AdminPhaseOverrideScreenState();
+}
+
+class _AdminPhaseOverrideScreenState extends State<AdminPhaseOverrideScreen> {
+  late String _phase;
+  static const List<String> _phases = [
+    'Setup',
+    'Ready',
+    'Open',
+    'Pending',
+    'Complete',
+    'Closed',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _phase = widget.currentPhase;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Phase Override')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              key: const Key('phase_override_dropdown'),
+              initialValue: _phase,
+              decoration: const InputDecoration(labelText: 'Auction phase'),
+              items: _phases
+                  .map((phase) => DropdownMenuItem(
+                        value: phase,
+                        child: Text(phase),
+                      ))
+                  .toList(),
+              onChanged: widget.canOverride
+                  ? (value) {
+                      if (value != null) {
+                        setState(() => _phase = value);
+                      }
+                    }
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              key: const Key('phase_override_apply'),
+              onPressed: widget.canOverride ? () {} : null,
+              child: const Text('Apply Override'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminAuctionListCreateScreenState
     extends State<AdminAuctionListCreateScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
