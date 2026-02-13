@@ -280,7 +280,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - fallback path when auction is closed.
 
-53) Frontend bidder: registration screen
+53) ✓ Frontend bidder: registration screen
    - Implement registration screen (email, phone, display_name).
    - Unit tests:
      - widget tests for validation errors.

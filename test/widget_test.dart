@@ -1,30 +1,29 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:tecs_auction/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('registration screen renders expected fields', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const AuctionApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Bidder Registration'), findsOneWidget);
+    expect(find.byKey(const Key('registration_email')), findsOneWidget);
+    expect(find.byKey(const Key('registration_phone')), findsOneWidget);
+    expect(find.byKey(const Key('registration_display_name')), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('registration validation errors are shown for invalid submit', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const AuctionApp());
+
+    await tester.tap(find.byKey(const Key('registration_submit')));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Email is required'), findsOneWidget);
+    expect(find.text('Phone is required'), findsOneWidget);
+    expect(find.text('Display name is required'), findsOneWidget);
   });
 }
