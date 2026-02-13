@@ -128,6 +128,11 @@ test("POST /items/:id/image stores metadata for valid image", async () => {
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.id, "image-1");
+  assert.deepEqual(res.body.variants, [
+    {width: 320, url: "images/item-1/original.jpg?w=320"},
+    {width: 640, url: "images/item-1/original.jpg?w=640"},
+    {width: 1024, url: "images/item-1/original.jpg?w=1024"},
+  ]);
 });
 
 test("POST /items/:id/image rejects unsupported content type", async () => {

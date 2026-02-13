@@ -171,7 +171,7 @@ This list is ordered by dependency and execution sequence. Each task includes re
    - Unit tests:
      - image upload rejects invalid size/type.
 
-33) Image upload: variant generation
+33) ✓ Image upload: variant generation
    - Generate scaled variants (320/640/1024) and store variant metadata.
    - Unit tests:
      - image variant metadata stored correctly.

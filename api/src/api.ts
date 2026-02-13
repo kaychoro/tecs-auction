@@ -1118,10 +1118,14 @@ async function handlePostItemImage(
       storagePath,
       originalWidth,
       originalHeight,
-      variants: [],
+      variants: buildImageVariants(storagePath),
     });
     await deps.updateItem(itemId, {
-      image: {id: image.id, url: image.storagePath, variants: []},
+      image: {
+        id: image.id,
+        url: image.storagePath,
+        variants: image.variants,
+      },
     });
 
     res.status(200).json(image);
@@ -1475,6 +1479,21 @@ function isSupportedImageContentType(contentType: string): boolean {
   return contentType === "image/jpeg" ||
     contentType === "image/png" ||
     contentType === "image/webp";
+}
+
+/**
+ * Builds standard image variant metadata for the configured widths.
+ * @param {string} storagePath
+ * @return {Array<Object>}
+ */
+function buildImageVariants(
+  storagePath: string
+): Array<{width: number; url: string}> {
+  const widths = [320, 640, 1024];
+  return widths.map((width) => ({
+    width,
+    url: `${storagePath}?w=${width}`,
+  }));
 }
 
 /**
