@@ -3,6 +3,11 @@
 ## Summary
 This document captures high-level design decisions and proposed module boundaries for the auction system, synthesized across the Architect, Developer, Reviewer, and QA personas.
 
+## Decision Register
+- Open architecture/contract decisions are tracked in:
+  - `agents/notes/design_decision_register.md`
+- Implementation remediation should not proceed on impacted areas until each relevant decision is marked `Accepted`.
+
 ## Design Decisions
 1) Single-school, multi-auction deployment
    - One deployment supports multiple auctions (e.g., demo + live).

@@ -10,7 +10,7 @@
 - API endpoints are implemented as HTTP Cloud Functions and routed via Firebase Hosting under `/api/*`.
 - Standard error format:
   - `{ "error": { "code": "<string>", "message": "<string>", "details": { ... } } }`
-- List endpoints use `page` and `page_size` query params and optional `sort` (e.g., `sort=created_at:desc`).
+- List endpoints use `page` and `pageSize` query params and optional `sort` (e.g., `sort=createdAt:desc`).
 - HTTP status conventions:
   - 200 success
   - 400 validation errors (e.g., `bid_too_low`)
@@ -22,8 +22,8 @@
 - Server-side role and auction membership checks are mandatory for all endpoints.
 
 ## Role Resolution
-- Effective role is derived from the user's global role and the AuctionMembership.role_override.
-- role_override can only down-scope privileges (e.g., AdminL2 -> AdminL3 for a specific auction).
+- Effective role is derived from the user's global role and the AuctionMembership.roleOverride.
+- roleOverride can only down-scope privileges (e.g., AdminL2 -> AdminL3 for a specific auction).
 - L1 is global and does not require auction membership for access.
 
 ## Role Matrix (Endpoint Groups)
@@ -78,68 +78,68 @@ Field requirements: unless noted, fields are required in responses; optional fie
   "id": "uuid",
   "name": "string",
   "status": "Setup|Ready|Open|Pending|Complete|Closed",
-  "time_zone": "string",
-  "phase_schedule": {
-    "Setup": {"starts_at": "iso8601", "ends_at": "iso8601"},
-    "Ready": {"starts_at": "iso8601", "ends_at": "iso8601"},
-    "Open": {"starts_at": "iso8601", "ends_at": "iso8601"},
-    "Pending": {"starts_at": "iso8601", "ends_at": "iso8601"},
-    "Complete": {"starts_at": "iso8601", "ends_at": "iso8601"},
-    "Closed": {"starts_at": "iso8601", "ends_at": "iso8601"}
+  "timeZone": "string",
+  "phaseSchedule": {
+    "Setup": {"startsAt": "iso8601", "endsAt": "iso8601"},
+    "Ready": {"startsAt": "iso8601", "endsAt": "iso8601"},
+    "Open": {"startsAt": "iso8601", "endsAt": "iso8601"},
+    "Pending": {"startsAt": "iso8601", "endsAt": "iso8601"},
+    "Complete": {"startsAt": "iso8601", "endsAt": "iso8601"},
+    "Closed": {"startsAt": "iso8601", "endsAt": "iso8601"}
   },
-  "auction_code": "string",
-  "notification_settings": {"in_app_enabled": true},
-  "payment_url": "string|null",
-  "created_by": "uuid",
-  "created_at": "iso8601"
+  "auctionCode": "string",
+  "notificationSettings": {"inAppEnabled": true},
+  "paymentUrl": "string|null",
+  "createdBy": "uuid",
+  "createdAt": "iso8601"
 }
 ```
 Notes:
 - Phase windows are enforced with inclusive start and exclusive end.
 - Phase schedule timestamps are stored in UTC and displayed in the auction time zone.
-Required fields: id, name, status, time_zone, phase_schedule, auction_code, notification_settings, created_by, created_at  
-Optional fields: payment_url
+Required fields: id, name, status, timeZone, phaseSchedule, auctionCode, notificationSettings, createdBy, createdAt  
+Optional fields: paymentUrl
 
 ### Item
 ```
 {
   "id": "uuid",
-  "auction_id": "uuid",
+  "auctionId": "uuid",
   "name": "string",
   "description": "string|null",
   "type": "silent|live",
-  "starting_price": 0,
-  "current_high_bid": 0,
-  "current_high_bidder_id": "uuid|null",
-  "current_high_bid_placed_at": "iso8601|null",
+  "startingPrice": 0,
+  "currentHighBid": 0,
+  "currentHighBidderId": "uuid|null",
+  "currentHighBidPlacedAt": "iso8601|null",
   "image": {
     "id": "uuid",
     "url": "string",
     "variants": [{"width": 320, "url": "string"}]
   } | null,
-  "created_at": "iso8601"
+  "createdAt": "iso8601"
 }
 ```
 Notes:
-- `current_high_bid*` fields are read-only and derived from bids via transactional ordering (not stored as mutable fields on Item).
-Required fields: id, auction_id, name, type, starting_price, created_at  
-Optional fields: description, image, current_high_bid, current_high_bidder_id, current_high_bid_placed_at
+- `currentHighBid*` fields are read-only and derived from bids via transactional ordering (not stored as mutable fields on Item).
+Required fields: id, auctionId, name, type, startingPrice, createdAt  
+Optional fields: description, image, currentHighBid, currentHighBidderId, currentHighBidPlacedAt
 
 ### Bid
 ```
 {
   "id": "uuid",
-  "auction_id": "uuid",
-  "item_id": "uuid",
-  "bidder_id": "uuid",
+  "auctionId": "uuid",
+  "itemId": "uuid",
+  "bidderId": "uuid",
   "amount": 0,
-  "placed_at": "iso8601"
+  "placedAt": "iso8601"
 }
 ```
-Required fields: id, auction_id, item_id, bidder_id, amount, placed_at
+Required fields: id, auctionId, itemId, bidderId, amount, placedAt
 Notes:
-- `placed_at` is server-generated using Firestore server timestamp and returned as ISO-8601 in UTC.
-- Bid ordering is deterministic: amount desc, placed_at asc, bid_id asc.
+- `placedAt` is server-generated using Firestore server timestamp and returned as ISO-8601 in UTC.
+- Bid ordering is deterministic: amount desc, placedAt asc, bidId asc.
 
 ### Notification
 ```
@@ -147,27 +147,27 @@ Notes:
   "id": "uuid",
   "type": "outbid_in_app",
   "message": "string",
-  "ref_type": "item",
-  "ref_id": "uuid",
-  "created_at": "iso8601",
-  "read_at": "iso8601|null"
+  "refType": "item",
+  "refId": "uuid",
+  "createdAt": "iso8601",
+  "readAt": "iso8601|null"
 }
 ```
-Required fields: id, type, message, ref_type, ref_id, created_at  
-Optional fields: read_at
+Required fields: id, type, message, refType, refId, createdAt  
+Optional fields: readAt
 
 ### Bidder Totals (admin view)
 ```
 {
-  "bidder_id": "uuid",
-  "bidder_number": 0,
-  "display_name": "string",
+  "bidderId": "uuid",
+  "bidderNumber": 0,
+  "displayName": "string",
   "subtotal": 0,
   "total": 0,
   "paid": false
 }
 ```
-Required fields: bidder_id, bidder_number, display_name, subtotal, total, paid
+Required fields: bidderId, bidderNumber, displayName, subtotal, total, paid
 
 ### User
 ```
@@ -176,16 +176,16 @@ Required fields: bidder_id, bidder_number, display_name, subtotal, total, paid
   "role": "Bidder|AdminL1|AdminL2|AdminL3",
   "email": "string",
   "phone": "string",
-  "email_verified_at": "iso8601|null",
-  "display_name": "string",
-  "last_auction_id": "uuid|null",
-  "created_at": "iso8601"
+  "emailVerifiedAt": "iso8601|null",
+  "displayName": "string",
+  "lastAuctionId": "uuid|null",
+  "createdAt": "iso8601"
 }
 ```
-Required fields: id, role, email, phone, display_name, created_at  
-Optional fields: email_verified_at, last_auction_id
+Required fields: id, role, email, phone, displayName, createdAt  
+Optional fields: emailVerifiedAt, lastAuctionId
 Notes:
-- last_auction_id is updated on join and on auction switch.
+- lastAuctionId is updated on join and on auction switch.
 
 ## List Response Envelope
 All list endpoints return:
@@ -193,11 +193,11 @@ All list endpoints return:
 {
   "data": [ ... ],
   "page": 1,
-  "page_size": 25,
+  "pageSize": 25,
   "total": 0
 }
 ```
-Defaults: page=1, page_size=25, max page_size=100.
+Defaults: page=1, pageSize=25, max pageSize=100.
 ## Developer Persona Analysis (Implementation Readiness)
 - HTTP status conventions are not defined; required for consistent UI handling.
 - Request/response schemas are not defined (field names, required vs. optional), especially for auctions and items.
@@ -211,7 +211,7 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Response: User
 
 ## Client Auth/Registration Flow (Reference)
-- Create user via Firebase Auth (email + password) and collect phone/display_name in app profile.
+- Create user via Firebase Auth (email + password) and collect phone/displayName in app profile.
 - Require email verification before allowing bidding actions.
 - Resend verification is throttled to 5 per hour per email.
  - On resend limit exceeded, return 429 `verification_throttled`.
@@ -223,11 +223,11 @@ Defaults: page=1, page_size=25, max page_size=100.
     ```
     {
       "name": "string",
-      "time_zone": "string",
-      "phase_schedule": { ... },
-      "auction_code": "string",
-      "notification_settings": {"in_app_enabled": true},
-      "payment_url": "string|null"
+      "timeZone": "string",
+      "phaseSchedule": { ... },
+      "auctionCode": "string",
+      "notificationSettings": {"inAppEnabled": true},
+      "paymentUrl": "string|null"
     }
     ```
   - Response: Auction
@@ -246,8 +246,8 @@ Defaults: page=1, page_size=25, max page_size=100.
     ```
     {
       "name": "string",
-      "time_zone": "string",
-      "payment_url": "string|null"
+      "timeZone": "string",
+      "paymentUrl": "string|null"
     }
     ```
   - Response: Auction
@@ -257,23 +257,23 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Request:
     ```
     {
-      "auction_code": "string"
+      "auctionCode": "string"
     }
     ```
-  - Response: AuctionMembership summary (auction_id, user_id, bidder_number, role_override|null)
+  - Response: AuctionMembership summary (auctionId, userId, bidderNumber, roleOverride|null)
   - Behavior:
-    - Allocates bidder_number using a per-auction counter (unique, non-reused).
-    - Updates user.last_auction_id to the joined auction.
+    - Allocates bidderNumber using a per-auction counter (unique, non-reused).
+    - Updates user.lastAuctionId to the joined auction.
   - Errors:
-    - 404 `auction_not_found` when auction_code is invalid.
-    - 409 `auction_code_conflict` when auction_code is duplicated.
+    - 404 `auction_not_found` when auctionCode is invalid.
+    - 409 `auction_code_conflict` when auctionCode is duplicated.
     - 409 `membership_exists` when user already joined.
 - PATCH `/api/auctions/{auctionId}/code`
   - Update auction code (L1). Applies to new joiners only; existing bidders remain unaffected.
   - Request:
     ```
     {
-      "auction_code": "string"
+      "auctionCode": "string"
     }
     ```
   - Response: Auction
@@ -284,7 +284,7 @@ Defaults: page=1, page_size=25, max page_size=100.
     ```
     {
       "status": "Setup|Ready|Open|Pending|Complete|Closed",
-      "phase_schedule": { ... }
+      "phaseSchedule": { ... }
     }
     ```
   - Response: Auction
@@ -294,7 +294,7 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Request:
     ```
     {
-      "in_app_enabled": true
+      "inAppEnabled": true
     }
     ```
   - Response: Auction
@@ -304,8 +304,8 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Request:
     ```
     {
-      "user_id": "uuid",
-      "role_override": "AdminL2|AdminL3|null"
+      "userId": "uuid",
+      "roleOverride": "AdminL2|AdminL3|null"
     }
     ```
   - Response: AuctionMembership summary
@@ -320,7 +320,7 @@ Defaults: page=1, page_size=25, max page_size=100.
       "name": "string",
       "description": "string|null",
       "type": "silent|live",
-      "starting_price": 0
+      "startingPrice": 0
     }
     ```
   - Response: Item
@@ -339,7 +339,7 @@ Defaults: page=1, page_size=25, max page_size=100.
       "name": "string",
       "description": "string|null",
       "type": "silent|live",
-      "starting_price": 0
+      "startingPrice": 0
     }
     ```
   - Response: Item
@@ -381,8 +381,8 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Request:
     ```
     {
-      "bidder_id": "uuid|null",
-      "final_price": 0
+      "bidderId": "uuid|null",
+      "finalPrice": 0
     }
     ```
   - Response: LiveWinner
@@ -410,10 +410,10 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Request:
     ```
     {
-      "picked_up": true
+      "pickedUp": true
     }
     ```
-  - Response: `{ "item_id": "uuid", "picked_up": true }`
+  - Response: `{ "itemId": "uuid", "pickedUp": true }`
 - AuditLog: pickup_status_changed
 - External payment URL should open in a new tab; bidders return by closing the tab.
 
@@ -421,10 +421,10 @@ Defaults: page=1, page_size=25, max page_size=100.
 - GET `/api/notifications`
   - List in-app notifications for current user.
   - Response: List<Notification>
-  - Behavior: default sort by created_at desc.
+  - Behavior: default sort by createdAt desc.
 - Each notification includes:
-  - `id`, `type`, `message`, `created_at`, `read_at`
-  - `ref_type` and `ref_id` (e.g., `item` and `itemId`) to link the notification to the relevant entity
+  - `id`, `type`, `message`, `createdAt`, `readAt`
+  - `refType` and `refId` (e.g., `item` and `itemId`) to link the notification to the relevant entity
 - Clients should deep-link to the referenced entity when a notification is tapped.
 - Clients may refresh the referenced entity when a notification is received, especially if it matches the currently viewed item.
 - PATCH `/api/notifications/{notificationId}`
@@ -440,13 +440,13 @@ Defaults: page=1, page_size=25, max page_size=100.
   - Response:
     ```
     {
-      "auction_id": "uuid",
-      "generated_at": "iso8601",
+      "auctionId": "uuid",
+      "generatedAt": "iso8601",
       "totals": {
-        "bidder_count": 0,
-        "items_count": 0,
-        "items_sold_count": 0,
-        "gross_total": 0
+        "bidderCount": 0,
+        "itemsCount": 0,
+        "itemsSoldCount": 0,
+        "grossTotal": 0
       }
     }
     ```
@@ -476,7 +476,7 @@ Defaults: page=1, page_size=25, max page_size=100.
   - 409 `phase_closed` when auction phase is not Open.
 - Auctions:
   - 404 `auction_not_found` when auctionId is invalid.
-  - 409 `auction_code_conflict` when auction_code is already in use.
+  - 409 `auction_code_conflict` when auctionCode is already in use.
 
 ## Error Examples
 - `phase_closed`:
@@ -485,9 +485,9 @@ Defaults: page=1, page_size=25, max page_size=100.
   ```
 - `bid_too_low`:
   ```
-  { "error": { "code": "bid_too_low", "message": "Bid must be higher than the current bid.", "details": { "current_high_bid": 42 } } }
+  { "error": { "code": "bid_too_low", "message": "Bid must be higher than the current bid.", "details": { "currentHighBid": 42 } } }
   ```
 - `outbid`:
   ```
-  { "error": { "code": "outbid", "message": "Another bidder placed a higher bid.", "details": { "current_high_bid": 45 } } }
+  { "error": { "code": "outbid", "message": "Another bidder placed a higher bid.", "details": { "currentHighBid": 45 } } }
   ```

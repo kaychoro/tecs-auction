@@ -14,7 +14,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 ### Reviewer Persona Notes
 - Security/authorization checks should be explicit at each step (e.g., membership and role checks for admin actions).
 - AuditLog coverage should be confirmed for all state-changing actions, including notification settings and auction code changes.
-- Report export flow should confirm access scope (L1/L2/L3) and logging for compliance.
+- Report export flow should confirm access scope (L1/L2) and logging for compliance.
 ## 1) Bidder Registration + Auction Join
 1. Bidder submits email + phone.
 2. Firebase Auth creates User (role=Bidder) and sends email verification.
@@ -23,7 +23,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 5. System validates auction code uniqueness mapping and creates AuctionMembership.
 6. System assigns bidder number.
 7. System logs membership_role_changed (Bidder) in AuditLog.
-8. System updates user.last_auction_id to the joined auction.
+8. System updates user.lastAuctionId to the joined auction.
 
 ## 18) Verification Resend Throttle
 1. User taps "Resend verification".
@@ -35,14 +35,14 @@ Key end-to-end flows with timing, permissions, and audit points.
 ## 10) Join Additional Auction / Switch Auctions
 1. Verified bidder selects "Join auction" and enters an auction code.
 2. System validates code and creates AuctionMembership.
-3. System updates user.last_auction_id on join and on auction switch.
+3. System updates user.lastAuctionId on join and on auction switch.
 4. Bidder can switch between active auctions they have joined (no global auction list).
 
 ## 11) Session Timeout & Return
 1. If a session expires, bidder logs in again.
 2. System returns bidder to the most recent auction they joined.
 3. Firebase Auth manages session refresh under the hood.
-4. If last_auction_id is closed or membership revoked, redirect to join/switch screen.
+4. If lastAuctionId is closed or membership revoked, redirect to join/switch screen.
 
 ## 7) QR Code Usage (Out of App)
 1. Admin generates QR codes for items.
@@ -60,9 +60,9 @@ Key end-to-end flows with timing, permissions, and audit points.
 3. On confirm, bidder submits bid for item.
 4. System validates phase=Open and bidder membership.
 5. Server runs a transaction:
-   - Reads current highest bid for the item (by amount desc, placed_at asc, bid_id asc).
+   - Reads current highest bid for the item (by amount desc, placedAt asc, bidId asc).
    - Validates bid amount > current highest (or >= starting price when no bids).
-   - Writes new Bid with server-generated placed_at and bid_id.
+   - Writes new Bid with server-generated placedAt and bidId.
    - Updates derived view for current high bid (read-only fields exposed via API).
    - Writes AuditLog entry and updates totals.
 6. On success, system sends outbid notification(s) to displaced bidder if enabled.
@@ -87,7 +87,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 2. Bidder can place a bid using the standard bid controls.
 
 ## 14) Item Create/Update with Image
-1. Admin creates or updates an item (name, type, starting_price, description).
+1. Admin creates or updates an item (name, type, startingPrice, description).
 2. System validates role and writes item changes.
 3. Admin uploads image (multipart form upload).
 4. System stores original image, generates scaled variants, and updates item image metadata.
@@ -104,7 +104,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 1. System auto-advances phase based on scheduled times.
 2. L1 can override phase or timing manually.
 3. System validates role and phase rules.
-4. If a manual override occurs, it takes precedence and writes the updated phase_schedule/status.
+4. If a manual override occurs, it takes precedence and writes the updated phaseSchedule/status.
 5. System persists phase change and records AuditLog entry.
 6. UI updates for bidders/admins based on new phase.
 
@@ -121,7 +121,7 @@ Key end-to-end flows with timing, permissions, and audit points.
 ## 12) Admin Membership Assignment
 1. L1 assigns L2/L3 admin to an auction.
 2. System validates role and membership rules.
-3. System updates AuctionMembership.role_override.
+3. System updates AuctionMembership.roleOverride.
 4. System logs membership_role_changed in AuditLog.
 
 ## 5) Checkout & Pickup (Complete Phase)

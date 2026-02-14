@@ -6,14 +6,14 @@ This document outlines the core data entities and relationships needed to meet t
 ## Developer Persona Analysis (Implementation Readiness)
 - The current entity list is sufficient to scaffold model classes, but several fields need concrete types and constraints (e.g., string length limits, required vs. nullable).
 - Auction phase timing needs explicit representation (start/end timestamps per phase or a schedule object) to implement hard cutoffs cleanly.
-- Bid ordering requires a stable tie-breaker; `placed_at` precision and server time source should be specified to avoid collisions.
+- Bid ordering requires a stable tie-breaker; `placedAt` precision and server time source should be specified to avoid collisions.
 - AuctionMembership role scoping is central; define whether role is per-user or per-auction, and how overrides interact with global roles.
 - Totals/Invoice should specify whether they are derived on the fly or stored and updated, and how often recalculated.
 - Image handling needs storage target and generated variant definitions (e.g., max width/height).
 - AuditLog actions should be enumerated to ensure consistent logging in code and analytics.
 - Notification records should clarify delivery status fields and retry behavior (or explicitly omit retries).
-- LiveWinner should specify whether `bidder_id` can be null for manual entry and how that affects totals.
-- Add indices and uniqueness constraints (e.g., unique bidder_number per auction, one image per item, one live winner per item).
+- LiveWinner should specify whether `bidderId` can be null for manual entry and how that affects totals.
+- Add indices and uniqueness constraints (e.g., unique bidderNumber per auction, one image per item, one live winner per item).
 
 ## Implementation Decisions (Persona-Resolved)
 This section locks down details so model classes can be implemented consistently.
@@ -23,42 +23,42 @@ This section locks down details so model classes can be implemented consistently
 - Timestamps: ISO-8601 strings in UTC stored; auction time zone used for display and phase enforcement.
 - Bidder numbers: integer values for human-friendly identification.
 - Required fields:
-  - Auction: id, name, status, time_zone, auction_code, notification_settings, created_by, created_at.
-  - User: id, role, email, phone, display_name, created_at.
-  - Item: id, auction_id, name, type, starting_price, created_at.
-  - Bid: id, auction_id, item_id, bidder_id, amount, placed_at.
-  - AuditLog: id, auction_id, actor_user_id, action, target_type, target_id, created_at.
-  - AuctionMembership: bidder_number required when role is Bidder.
+  - Auction: id, name, status, timeZone, auctionCode, notificationSettings, createdBy, createdAt.
+  - User: id, role, email, phone, displayName, createdAt.
+  - Item: id, auctionId, name, type, startingPrice, createdAt.
+  - Bid: id, auctionId, itemId, bidderId, amount, placedAt.
+  - AuditLog: id, auctionId, actorUserId, action, targetType, targetId, createdAt.
+  - AuctionMembership: bidderNumber required when role is Bidder.
 - Nullable fields:
-  - User.email_verified_at (null until verified)
-  - Item.description, Item.image_id
-  - LiveWinner.bidder_id (nullable for manual entry)
+  - User.emailVerifiedAt (null until verified)
+  - Item.description, Item.imageId
+  - LiveWinner.bidderId (nullable for manual entry)
 
 ### Auction Phase Timing Model
 - Auction has:
-  - phase_schedule: map of {phase -> starts_at, ends_at} in auction time zone.
-  - current_phase: derived from time or explicitly set by L1.
-- Hard cutoffs: a bid is accepted only if placed_at is within Open window (inclusive of start, exclusive of end).
+  - phaseSchedule: map of {phase -> startsAt, endsAt} in auction time zone.
+  - currentPhase: derived from time or explicitly set by L1.
+- Hard cutoffs: a bid is accepted only if placedAt is within Open window (inclusive of start, exclusive of end).
  - Phase evaluation uses auction time zone for schedule display and comparison; timestamps are stored in UTC.
 
 ### Roles and Membership
 - User.role represents global role (Bidder, AdminL1, AdminL2, AdminL3).
 - AuctionMembership is required for all non-L1 users to access an auction.
-- AuctionMembership.role_override (nullable) can downscope privileges for a specific auction (e.g., AdminL2 -> AdminL3).
-- Effective role = min(global role, role_override) by privilege level (role_override cannot up-scope).
+- AuctionMembership.roleOverride (nullable) can downscope privileges for a specific auction (e.g., AdminL2 -> AdminL3).
+- Effective role = min(global role, roleOverride) by privilege level (roleOverride cannot up-scope).
 
 ### Bids and Ordering
-- placed_at is server-generated to avoid client clock skew.
-- placed_at precision is milliseconds (Firestore timestamp precision).
-- Tie-breaking: (amount desc, placed_at asc, bid_id asc).
-- Highest bid is derived; no separate mutable "current_high_bid" field.
+- placedAt is server-generated to avoid client clock skew.
+- placedAt precision is milliseconds (Firestore timestamp precision).
+- Tie-breaking: (amount desc, placedAt asc, bidId asc).
+- Highest bid is derived; no separate mutable "currentHighBid" field.
  - Bid transactions update totals and derived views atomically.
 
 ### Derived Views (Read-Only)
 - Item current high bid is exposed via derived fields in API responses:
-  - current_high_bid
-  - current_high_bidder_id
-  - current_high_bid_placed_at
+  - currentHighBid
+  - currentHighBidderId
+  - currentHighBidPlacedAt
 - These values are computed transactionally from bids and are not stored on Item records.
 
 ### Totals / Invoice Strategy
@@ -89,120 +89,120 @@ This section locks down details so model classes can be implemented consistently
 - Notification.delivery_channel: in_app, email.
 
 ### Indices / Uniqueness
-- Auction: unique (auction_code) across the deployment; enforce with a dedicated uniqueness document or a Firestore rule-backed index pattern; index on status.
-- AuctionMembership: unique (auction_id, user_id).
+- Auction: unique (auctionCode) across the deployment; enforce with a dedicated uniqueness document or a Firestore rule-backed index pattern; index on status.
+- AuctionMembership: unique (auctionId, userId).
 - Bidder numbers: unique per auction (enforced via membership or bidder mapping table).
-- Item: unique (auction_id, name) optional; index on auction_id.
-- Image: unique (item_id).
-- Bid: index (item_id, amount desc, placed_at asc).
-- LiveWinner: unique (item_id).
-- Invoice: unique (auction_id, bidder_id).
+- Item: unique (auctionId, name) optional; index on auctionId.
+- Image: unique (itemId).
+- Bid: index (itemId, amount desc, placedAt asc).
+- LiveWinner: unique (itemId).
+- Invoice: unique (auctionId, bidderId).
 ## Core Entities
 1) Auction
    - id
    - name
    - status (Setup, Ready, Open, Pending, Complete, Closed)
-   - time_zone (IANA string; default for target: MST)
-   - starts_at / ends_at (timestamps in auction time zone)
-   - auction_code (current)
-   - notification_settings (in_app_enabled)
-   - payment_url
-   - created_by (L1 admin)
+   - timeZone (IANA string; default for target: MST)
+   - startsAt / endsAt (timestamps in auction time zone)
+   - auctionCode (current)
+   - notificationSettings (inAppEnabled)
+   - paymentUrl
+   - createdBy (L1 admin)
 
 2) User
    - id
    - role (Bidder, AdminL3, AdminL2, AdminL1)
    - email
    - phone
-   - email_verified_at
-   - display_name
-   - last_auction_id (for returning bidders to most recent auction)
-   - created_at
-   - last_auction_id is updated on join and on auction switch.
+   - emailVerifiedAt
+   - displayName
+   - lastAuctionId (for returning bidders to most recent auction)
+   - createdAt
+   - lastAuctionId is updated on join and on auction switch.
 
 3) AuctionMembership
    - id
-   - auction_id
-   - user_id
-   - role_override (optional; for per-auction admin scoping)
+   - auctionId
+   - userId
+   - roleOverride (optional; for per-auction admin scoping)
    - status (active, revoked)
-   - bidder_number (integer, for bidders; unique per auction)
-   - bidder_number is allocated from a per-auction counter document.
+   - bidderNumber (integer, for bidders; unique per auction)
+   - bidderNumber is allocated from a per-auction counter document.
 
 4) Item
    - id
-   - auction_id
+   - auctionId
    - name
    - description
    - type (silent, live)
-   - starting_price
-   - image_id (nullable)
-   - created_at
+   - startingPrice
+   - imageId (nullable)
+   - createdAt
 
 5) Image
    - id
-   - auction_id
-   - storage_path
-   - original_dimensions
-   - scaled_variants (list)
+   - auctionId
+   - storagePath
+   - originalDimensions
+   - scaledVariants (list)
 
 6) Bid
    - id
-   - auction_id
-   - item_id
-   - bidder_id
+   - auctionId
+   - itemId
+   - bidderId
    - amount
-   - placed_at (timestamp)
-   - is_highest (derived or indexed)
+   - placedAt (timestamp)
+   - isHighest (derived or indexed)
 
 7) LiveWinner
    - id
-   - auction_id
-   - item_id
-   - bidder_id (nullable if manual entry)
-   - final_price
-   - assigned_at
+   - auctionId
+   - itemId
+   - bidderId (nullable if manual entry)
+   - finalPrice
+   - assignedAt
 
 8) Invoice / Totals
    - id
-   - auction_id
-   - bidder_id
+   - auctionId
+   - bidderId
    - subtotal
    - total
-   - updated_at
+   - updatedAt
 
 9) PaymentStatus
    - id
-   - auction_id
-   - bidder_id
+   - auctionId
+   - bidderId
    - status (unpaid, paid)
-   - updated_at
+   - updatedAt
 
 10) PickupStatus
     - id
-    - auction_id
-    - item_id
-    - status (not_picked_up, picked_up)
-    - updated_at
+    - auctionId
+    - itemId
+    - status (notPickedUp, pickedUp)
+    - updatedAt
 
 11) Notification
     - id
-    - auction_id
-    - bidder_id
+    - auctionId
+    - bidderId
     - type (outbid_in_app)
-    - ref_type / ref_id (e.g., item / item_id)
-    - read_at
-    - sent_at
+    - refType / refId (e.g., item / itemId)
+    - readAt
+    - sentAt
     - payload
 
 12) AuditLog
     - id
-    - auction_id
-    - actor_user_id
+    - auctionId
+    - actorUserId
     - action (bid_placed, bid_removed, item_updated, phase_changed, etc.)
-    - target_type / target_id
+    - targetType / targetId
     - metadata
-    - created_at
+    - createdAt
 
 ## Key Relationships
 - Auction 1..* Item
@@ -217,112 +217,131 @@ This section locks down details so model classes can be implemented consistently
 
 ## Integrity Notes
 - Bids are append-only; removals are recorded in AuditLog.
-- Highest bid is derived by (item_id, max amount, earliest placed_at).
+- Highest bid is derived by (itemId, max amount, earliest placedAt).
 - AuctionMembership determines L2/L3 access per auction.
 
-## Firestore Collection Layout (Recommended)
-- `auctions/{auctionId}`
-  - `items/{itemId}`
-  - `bids/{bidId}`
-  - `live_winners/{liveWinnerId}`
-  - `audit_logs/{auditLogId}`
-  - `totals/{bidderId}`
-  - `notifications/{notificationId}`
-- `users/{userId}`
-  - `auction_memberships/{auctionId}`
+## Firestore Collection Layout (Accepted)
+The accepted v1 layout is flat top-level collections with `auctionId` on auction-scoped records.
+
+- `auctions`
+- `users`
+- `auction_memberships`
+- `items`
+- `images`
+- `bids`
+- `live_winners`
+- `audit_logs`
+- `totals`
+- `notifications`
+- `auction_bidder_counters`
+- `auction_code_index`
 
 ## Firestore Fields (Draft)
-### auctions/{auctionId}
+### `auctions/{auctionId}`
 - id (string)
 - name (string)
 - status (string enum)
-- time_zone (string)
-- phase_schedule (map)
-- auction_code (string, unique across deployment)
-- notification_settings (map: in_app_enabled)
-- payment_url (string|null)
-- created_by (string)
-- created_at (timestamp)
+- timeZone (string)
+- phaseSchedule (map)
+- auctionCode (string, unique across deployment)
+- notificationSettings (map: inAppEnabled)
+- paymentUrl (string|null)
+- createdBy (string)
+- createdAt (timestamp)
+- updatedAt (timestamp)
 
-### auctions/{auctionId}/items/{itemId}
+### `items/{itemId}`
 - id (string)
-- auction_id (string)
+- auctionId (string)
 - name (string)
 - description (string|null)
 - type (silent|live)
-- starting_price (number)
+- startingPrice (number)
 - image (map|null)
-- created_at (timestamp)
+- pickedUp (boolean)
+- createdAt (timestamp)
+- updatedAt (timestamp)
   - Note: current high bid values are derived from bids via transactional ordering; not stored on Item.
 
-### auctions/{auctionId}/bids/{bidId}
+### `bids/{bidId}`
 - id (string)
-- auction_id (string)
-- item_id (string)
-- bidder_id (string)
+- auctionId (string)
+- itemId (string)
+- bidderId (string)
 - amount (number)
-- placed_at (timestamp)
+- placedAt (timestamp)
 
-### auctions/{auctionId}/live_winners/{liveWinnerId}
-- id (string)
-- auction_id (string)
-- item_id (string)
-- bidder_id (string|null)
-- final_price (number)
-- assigned_at (timestamp)
+### `live_winners/{itemId}`
+- id (string, same as `itemId`)
+- auctionId (string)
+- itemId (string)
+- bidderId (string|null)
+- finalPrice (number)
+- assignedAt (timestamp)
 
-### auctions/{auctionId}/audit_logs/{auditLogId}
+### `audit_logs/{auditId}`
 - id (string)
-- auction_id (string)
-- actor_user_id (string)
+- auctionId (string)
+- actorUserId (string)
 - action (string enum)
-- target_type (string)
-- target_id (string)
+- targetType (string)
+- targetId (string)
 - metadata (map)
-- created_at (timestamp)
+- createdAt (timestamp)
 
-### auctions/{auctionId}/totals/{bidderId}
-- bidder_id (string)
-- bidder_number (number)
-- display_name (string)
+### `totals/{auctionId:bidderId}`
+- auctionId (string)
+- bidderId (string)
+- bidderNumber (number)
+- displayName (string)
 - subtotal (number)
 - total (number)
 - paid (boolean)
-- updated_at (timestamp)
+- updatedAt (timestamp)
 
-### auctions/{auctionId}/notifications/{notificationId}
+### `notifications/{notificationId}`
 - id (string)
+- auctionId (string)
+- userId (string)
 - type (outbid_in_app)
 - message (string)
-- ref_type (string)
-- ref_id (string)
-- created_at (timestamp)
-- read_at (timestamp|null)
+- refType (string)
+- refId (string)
+- createdAt (timestamp)
+- readAt (timestamp|null)
 
-### users/{userId}
+### `auction_memberships/{auctionId:userId}`
+- auctionId (string)
+- userId (string)
+- roleOverride (string|null)
+- status (active|revoked)
+- bidderNumber (number|null)
+- createdAt (timestamp)
+- updatedAt (timestamp)
+
+### `users/{userId}`
 - id (string)
 - role (Bidder|AdminL1|AdminL2|AdminL3)
 - email (string)
 - phone (string)
-- email_verified_at (timestamp|null)
-- display_name (string)
-- last_auction_id (string|null)
-- created_at (timestamp)
+- emailVerifiedAt (timestamp|null)
+- displayName (string)
+- lastAuctionId (string|null)
+- createdAt (timestamp)
+- updatedAt (timestamp)
 
-### users/{userId}/auction_memberships/{auctionId}
-- auction_id (string)
-- user_id (string)
-- role_override (string|null)
-- status (active|revoked)
-- bidder_number (number|null)
-
-### auctions/{auctionId}/counters/bidder_number
+### `auction_bidder_counters/{auctionId}`
 - value (number)
-- updated_at (timestamp)
+- updatedAt (timestamp)
+
+### `auction_code_index/{auctionCode}`
+- auctionId (string)
+- updatedAt (timestamp)
 
 ## Suggested Indexes (Firestore)
-- auctions: index on `auction_code` (for join lookup).
-- auctions/{auctionId}/items: index on `type`, `created_at`.
-- auctions/{auctionId}/bids: index on `item_id`, `amount` (desc), `placed_at` (asc).
-- auctions/{auctionId}/audit_logs: index on `created_at`.
-- auctions/{auctionId}/totals: index on `bidder_number`.
+- `auctions`: index on `auctionCode`, `status`.
+- `items`: composite index on `auctionId`, `type`, `createdAt`.
+- `bids`: composite index on `itemId`, `amount` (desc), `placedAt` (asc).
+- `audit_logs`: composite index on `auctionId`, `createdAt`.
+- `totals`: composite index on `auctionId`, `bidderNumber`.
+- `notifications`: composite index on `userId`, `createdAt` (desc).
